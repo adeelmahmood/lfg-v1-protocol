@@ -2,13 +2,15 @@ const { ethers, network } = require("hardhat");
 const fs = require("fs");
 const { SignerWithAddress } = require("@nomiclabs/hardhat-ethers/signers");
 
-const FRONT_END_ADDRS_FILE = "../lfg-dapp/constants/contract.json";
-const FRONT_END_LENDPOOL_ABI_FILE = "../lfg-dapp/constants/lendingpool.json";
-const FRONT_END_LENDPOOLCORE_ABI_FILE = "../lfg-dapp/constants/lendingpoolcore.json";
-const FRONT_END_SWAPROUTER_ABI_FILE = "../lfg-dapp/constants/swaprouter.json";
+const UI_FOLDER = process.env.LFG_UI_FOLDER;
+
+const FRONT_END_ADDRS_FILE = UI_FOLDER + "/contract.json";
+const FRONT_END_LENDPOOL_ABI_FILE = UI_FOLDER + "/lendingpool.json";
+const FRONT_END_LENDPOOLCORE_ABI_FILE = UI_FOLDER + "/lendingpoolcore.json";
+const FRONT_END_SWAPROUTER_ABI_FILE = UI_FOLDER + "/swaprouter.json";
 
 module.exports = async function () {
-    if (process.env.UPDATE_FRONT_END) {
+    if (process.env.UPDATE_FRONT_END === "true") {
         await updateContractAddress();
         await updateAbi();
     }
