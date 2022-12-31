@@ -14,9 +14,10 @@ const networkConfig = {
         subscriptionId: "5713",
         callbackGasLimit: "500000",
         contracts: {
-            WETH: "0x2e3A2fb8473316A02b8A297B982498E661E1f6f5",
-            DAI: "0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464",
+            WETH: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
+            DAI: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+            AAVE_LP_PROVIDER: "0x5E52dEc931FFb32f609681B8438A51c675cc232d",
         },
     },
     31337: {

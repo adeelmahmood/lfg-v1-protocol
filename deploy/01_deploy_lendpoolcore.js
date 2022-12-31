@@ -1,5 +1,6 @@
 const { network } = require("hardhat");
 const { developmentChains, networkConfig } = require("../hardhat-helper-config");
+const { verify } = require("../utils/verify");
 
 module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deploy, log } = deployments;
@@ -13,6 +14,11 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         log: true,
         waitConfirmations: BLOCK_CONFIRMATIONS,
     });
+
+    if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
+        log("Verifying...");
+        await verify(core.address, []);
+    }
 
     log("LendPoolCore contract deployed successfully");
 };
