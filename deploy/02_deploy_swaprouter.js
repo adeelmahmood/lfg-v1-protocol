@@ -8,20 +8,22 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
+    const args = [
+        networkConfig[chainId].contracts.DAI,
+        networkConfig[chainId].contracts.WETH,
+        networkConfig[chainId].contracts.UNISWAP_ROUTER,
+    ];
+
     const swapRouter = await deploy("SwapRouter", {
         from: deployer,
-        args: [
-            networkConfig[chainId].contracts.DAI,
-            networkConfig[chainId].contracts.WETH,
-            networkConfig[chainId].contracts.UNISWAP_ROUTER,
-        ],
+        args: args,
         log: true,
         waitConfirmations: BLOCK_CONFIRMATIONS,
     });
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(swapRouter.address, []);
+        await verify(swapRouter.address, args);
     }
 
     log("SwapRouter contract deployed successfully");

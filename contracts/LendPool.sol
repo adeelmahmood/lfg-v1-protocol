@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 import "./LendPoolCore.sol";
 import "./DataTypes.sol";
+import "./libraries/TokenLib.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -14,6 +15,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract LendPool is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
+    using TokenLib for DataTypes.DepositedToken;
 
     LendPoolCore core;
 
@@ -21,6 +23,8 @@ contract LendPool is Ownable, ReentrancyGuard {
     mapping(address => uint256) public tokenBalances;
     // user address => token address => amount
     mapping(address => mapping(address => uint256)) public userBalances;
+    // deposited tokens array
+    DataTypes.DepositedToken[] public tokens;
 
     /* Events */
     event DepositMade(address indexed user, address indexed token, uint256 amount);
@@ -45,12 +49,27 @@ contract LendPool is Ownable, ReentrancyGuard {
         // update balances
         tokenBalances[address(_token)] += _amount;
         userBalances[msg.sender][address(_token)] += _amount;
-        
+        // if first deposit for this token, add to tokens array
+        addToTokens(_token);
+
         // forward the tokens to core
         core.deposit(address(_token), _amount);
 
         // emit deposit event
         emit DepositMade(msg.sender, address(_token), _amount);
+    }
+
+    function addToTokens(ERC20 token) internal {
+        for (uint256 i; i < tokens.length; i++) {
+            if (tokens[i].token == address(token)) {
+                return;
+            }
+        }
+
+        // add deposited token info
+        DataTypes.DepositedToken memory depositedToken;
+        depositedToken.parseInfo(DataTypes.DepositedToken.parseInfo(token));
+        tokens.push(depositedToken);
     }
 
     function getLiquidity() external view returns (DataTypes.PoolLiquidity memory) {
@@ -69,14 +88,14 @@ contract LendPool is Ownable, ReentrancyGuard {
         returns (DataTypes.TokenMarketData[] memory tokensMarketData)
     {
         // get all active tokens in the underlying market
-        address[] memory tokens = core.getActiveTokensFromMarket();
+        address[] memory activeTokens = core.getActiveTokensFromMarket();
 
         // gather more info on each token
         DataTypes.TokenMarketData[] memory marketData = new DataTypes.TokenMarketData[](
-            tokens.length
+            activeTokens.length
         );
-        for (uint256 i; i < tokens.length; i++) {
-            marketData[i] = core.getTokenMarketData(tokens[i]);
+        for (uint256 i; i < activeTokens.length; i++) {
+            marketData[i] = core.getTokenMarketData(activeTokens[i]);
         }
 
         return marketData;
@@ -89,4 +108,9 @@ contract LendPool is Ownable, ReentrancyGuard {
     function tokenBalance(address _token) public view returns (uint256) {
         return tokenBalances[_token];
     }
+
+    // function getUserBalances(address _user) public view returns (uint256) {
+    //     // get all deposited tokens
+    //     for (uint256 i; i < tokens.length; i++) {}
+    // }
 }

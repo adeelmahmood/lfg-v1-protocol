@@ -22,4 +22,11 @@ library DataTypes {
         uint256 stableBorrowRate;
         uint256 variableBorrowRate;
     }
+
+    struct DepositedToken {
+        address token;
+        string tokenSymbol;
+        string tokenName;
+        uint8 tokenDecimals;
+    }
 }

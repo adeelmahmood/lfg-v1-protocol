@@ -86,15 +86,15 @@ contract LendPoolCore {
         tmd.scaledBalance = IaToken(reserveData.aTokenAddress).scaledBalanceOf(address(this));
 
         // MKR_ADDRESS
-        if (_token == 0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2) {
-            tmd.tokenSymbol = bytes32ToString(IERC20DetailedBytes(_token).symbol());
-            tmd.tokenName = bytes32ToString(IERC20DetailedBytes(_token).name());
-            tmd.tokenDecimals = IERC20DetailedBytes(_token).decimals();
-        } else {
-            tmd.tokenSymbol = IERC20Detailed(_token).symbol();
-            tmd.tokenName = IERC20Detailed(_token).name();
-            tmd.tokenDecimals = IERC20Detailed(_token).decimals();
-        }
+        // if (_token == 0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2) {
+        //     tmd.tokenSymbol = bytes32ToString(IERC20DetailedBytes(_token).symbol());
+        //     tmd.tokenName = bytes32ToString(IERC20DetailedBytes(_token).name());
+        //     tmd.tokenDecimals = IERC20DetailedBytes(_token).decimals();
+        // } else {
+        //     tmd.tokenSymbol = IERC20Detailed(_token).symbol();
+        //     tmd.tokenName = IERC20Detailed(_token).name();
+        //     tmd.tokenDecimals = IERC20Detailed(_token).decimals();
+        // }
 
         // rates
         tmd.liquidityRate = reserveData.currentLiquidityRate;

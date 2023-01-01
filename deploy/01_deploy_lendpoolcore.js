@@ -8,16 +8,18 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
+    const args = [networkConfig[chainId].contracts.AAVE_LP_PROVIDER];
+
     const core = await deploy("LendPoolCore", {
         from: deployer,
-        args: [networkConfig[chainId].contracts.AAVE_LP_PROVIDER],
+        args: args,
         log: true,
         waitConfirmations: BLOCK_CONFIRMATIONS,
     });
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(core.address, []);
+        await verify(core.address, args);
     }
 
     log("LendPoolCore contract deployed successfully");

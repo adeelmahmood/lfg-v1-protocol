@@ -10,16 +10,18 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     const core = await ethers.getContract("LendPoolCore");
 
+    const args = [core.address];
+
     const lendingPool = await deploy("LendPool", {
         from: deployer,
-        args: [core.address],
+        args: args,
         log: true,
         waitConfirmations: BLOCK_CONFIRMATIONS,
     });
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(lendingPool.address, []);
+        await verify(lendingPool.address, args);
     }
 
     log("LendingPool contract deployed successfully");

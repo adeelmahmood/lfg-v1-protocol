@@ -78,19 +78,3 @@ interface IaToken {
 
     function redeem(uint256 _amount) external;
 }
-
-interface IERC20Detailed is IERC20 {
-    function name() external view returns (string memory);
-
-    function symbol() external view returns (string memory);
-
-    function decimals() external view returns (uint8);
-}
-
-interface IERC20DetailedBytes is IERC20 {
-    function name() external view returns (bytes32);
-
-    function symbol() external view returns (bytes32);
-
-    function decimals() external view returns (uint8);
-}

@@ -46,8 +46,6 @@ describe("LendingPool Unit Tests", function () {
         const contracts = networkConfig[chainId].contracts;
 
         WETH = new ethers.Contract(contracts.WETH, ercAbi, deployer);
-        // WETH = await ethers.getContract("WethToken");
-        // DAI = await ethers.getContract("DaiToken");
         DAI = new ethers.Contract(contracts.DAI, ercAbi, deployer);
     });
 
@@ -134,6 +132,9 @@ describe("LendingPool Unit Tests", function () {
             // assert user balance is zero
             const finalDaiBalance = await DAI.balanceOf(deployer.address);
             expect(Number(finalDaiBalance)).to.be.equal(0);
+
+            const tokens = await lendingPool.tokens(0);
+            console.log(tokens);
         });
 
         it("can deposit WETH and retrieve pool and token status", async function () {
