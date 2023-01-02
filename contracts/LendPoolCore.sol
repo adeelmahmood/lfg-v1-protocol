@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "./DataTypes.sol";
+import "./libraries/TokenLib.sol";
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -15,6 +16,7 @@ import "./interfaces/aave/ProtocolDataProvider.sol";
 contract LendPoolCore {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
+    using TokenLib for ERC20;
 
     address public aave;
 
@@ -85,16 +87,8 @@ contract LendPoolCore {
         tmd.balanceWithDeriveToken = IaToken(reserveData.aTokenAddress).balanceOf(address(this));
         tmd.scaledBalance = IaToken(reserveData.aTokenAddress).scaledBalanceOf(address(this));
 
-        // MKR_ADDRESS
-        // if (_token == 0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2) {
-        //     tmd.tokenSymbol = bytes32ToString(IERC20DetailedBytes(_token).symbol());
-        //     tmd.tokenName = bytes32ToString(IERC20DetailedBytes(_token).name());
-        //     tmd.tokenDecimals = IERC20DetailedBytes(_token).decimals();
-        // } else {
-        //     tmd.tokenSymbol = IERC20Detailed(_token).symbol();
-        //     tmd.tokenName = IERC20Detailed(_token).name();
-        //     tmd.tokenDecimals = IERC20Detailed(_token).decimals();
-        // }
+        // extract token metadata
+        (tmd.tokenName, tmd.tokenSymbol, tmd.tokenDecimals) = ERC20(_token).getMetadata();
 
         // rates
         tmd.liquidityRate = reserveData.currentLiquidityRate;
@@ -102,17 +96,5 @@ contract LendPoolCore {
         tmd.variableBorrowRate = reserveData.currentVariableBorrowRate;
 
         return tmd;
-    }
-
-    function bytes32ToString(bytes32 _bytes32) public pure returns (string memory) {
-        uint8 i = 0;
-        while (i < 32 && _bytes32[i] != 0) {
-            i++;
-        }
-        bytes memory bytesArray = new bytes(i);
-        for (i = 0; i < 32 && _bytes32[i] != 0; i++) {
-            bytesArray[i] = _bytes32[i];
-        }
-        return string(bytesArray);
     }
 }

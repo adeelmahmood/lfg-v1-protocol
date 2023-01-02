@@ -35,8 +35,6 @@ describe("SwapRouter Unit Tests", function () {
         const contracts = networkConfig[chainId].contracts;
 
         WETH = new ethers.Contract(contracts.WETH, ercAbi, deployer);
-        // WETH = await ethers.getContract("WethToken");
-        // DAI = await ethers.getContract("DaiToken");
         DAI = new ethers.Contract(contracts.DAI, ercAbi, deployer);
     });
 
@@ -65,7 +63,7 @@ describe("SwapRouter Unit Tests", function () {
             const afterWethBalance = await WETH.balanceOf(deployer.address);
 
             // assert after balances
-            expect(Number(afterDaiBalance)).to.be.greaterThan(Number(beforeDaiBalance));
+            expect(afterDaiBalance).to.be.greaterThan(beforeDaiBalance);
         });
     });
 });

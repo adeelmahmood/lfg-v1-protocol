@@ -97,11 +97,11 @@ describe("LendingPool Unit Tests", function () {
 
             // assert user balance and total supply
             const userBalance = await lendingPool.userBalance(deployer.address, WETH.address);
-            expect(Number(userBalance)).to.be.equal(Number(amount));
+            expect(userBalance).to.equal(amount);
 
             // assert user balance is zero
             const finalWethBalance = await WETH.balanceOf(deployer.address);
-            expect(Number(finalWethBalance)).to.be.equal(0);
+            expect(finalWethBalance).to.be.equal(0);
         });
 
         it("can deposit DAI", async function () {
@@ -127,46 +127,28 @@ describe("LendingPool Unit Tests", function () {
 
             // assert user balance and total supply
             const userBalance = await lendingPool.userBalance(deployer.address, DAI.address);
-            expect(Number(userBalance)).to.be.equal(Number(afterDaiBalance));
+            expect(userBalance).to.equal(afterDaiBalance);
 
             // assert user balance is zero
             const finalDaiBalance = await DAI.balanceOf(deployer.address);
-            expect(Number(finalDaiBalance)).to.be.equal(0);
-
-            const tokens = await lendingPool.tokens(0);
-            console.log(tokens);
+            expect(finalDaiBalance).to.be.equal(0);
         });
 
-        it("can deposit WETH and retrieve pool and token status", async function () {
-            const amount = hre.ethers.utils.parseEther("1");
+        it("can retrieve pool liquidity", async function () {
+            const liquidity = await lendingPool.getLiquidity();
+            expect(liquidity.totalCollateral).to.be.equal(0);
+            expect(liquidity.totalDebt).to.be.equal(0);
+            expect(liquidity.availableToBorrow).to.be.equal(0);
+            expect(liquidity.loanToValue).to.be.equal(0);
+        });
 
-            // get some weth
-            const deposit = await WETH.deposit({
-                value: amount,
-            });
-            await deposit.wait();
+        it("cant retrieve market tokens", async function () {
+            const marketTokens = await lendingPool.getAvailableTokens();
+            expect(marketTokens.length).to.be.greaterThan(0);
 
-            // approve weth for tranfer
-            await WETH.approve(swapRouter.address, amount);
-
-            // deposit weth into contract
-            await WETH.approve(lendingPool.address, amount);
-            await lendingPool.deposit(WETH.address, amount);
-
-            const poolStats = await lendingPool.getLiquidity();
-
-            const tokensMarketData = await lendingPool.getAvailableTokens();
-            tokensMarketData.map((token) => {
-                console.log(
-                    token.tokenSymbol +
-                        "\t" +
-                        token.currentBalance +
-                        "\t" +
-                        token.balanceWithDeriveToken +
-                        "\t" +
-                        token.scaledBalance
-                );
-            });
+            // grab the first token
+            const firstToken = marketTokens[0];
+            expect(firstToken.token).to.be.a.properAddress;
         });
     });
 });

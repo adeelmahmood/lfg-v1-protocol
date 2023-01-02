@@ -14,7 +14,7 @@ library DataTypes {
         address token;
         string tokenSymbol;
         string tokenName;
-        uint8 tokenDecimals;
+        uint256 tokenDecimals;
         uint256 currentBalance;
         uint256 balanceWithDeriveToken;
         uint256 scaledBalance;
@@ -23,10 +23,10 @@ library DataTypes {
         uint256 variableBorrowRate;
     }
 
-    struct DepositedToken {
+    struct TokenMetadata {
         address token;
-        string tokenSymbol;
-        string tokenName;
-        uint8 tokenDecimals;
+        string symbol;
+        string name;
+        uint256 decimals;
     }
 }

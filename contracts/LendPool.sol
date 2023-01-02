@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract LendPool is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
-    using TokenLib for DataTypes.DepositedToken;
+    using TokenLib for ERC20;
 
     LendPoolCore core;
 
@@ -24,7 +24,7 @@ contract LendPool is Ownable, ReentrancyGuard {
     // user address => token address => amount
     mapping(address => mapping(address => uint256)) public userBalances;
     // deposited tokens array
-    DataTypes.DepositedToken[] public tokens;
+    DataTypes.TokenMetadata[] public suppliedTokens;
 
     /* Events */
     event DepositMade(address indexed user, address indexed token, uint256 amount);
@@ -60,16 +60,19 @@ contract LendPool is Ownable, ReentrancyGuard {
     }
 
     function addToTokens(ERC20 token) internal {
-        for (uint256 i; i < tokens.length; i++) {
-            if (tokens[i].token == address(token)) {
+        for (uint256 i; i < suppliedTokens.length; i++) {
+            if (suppliedTokens[i].token == address(token)) {
                 return;
             }
         }
 
         // add deposited token info
-        DataTypes.DepositedToken memory depositedToken;
-        depositedToken.parseInfo(DataTypes.DepositedToken.parseInfo(token));
-        tokens.push(depositedToken);
+        DataTypes.TokenMetadata memory tokenMD;
+        // extract token metadata
+        (tokenMD.name, tokenMD.symbol, tokenMD.decimals) = token.getMetadata();
+        tokenMD.token = address(token);
+        // add to tokens array
+        suppliedTokens.push(tokenMD);
     }
 
     function getLiquidity() external view returns (DataTypes.PoolLiquidity memory) {

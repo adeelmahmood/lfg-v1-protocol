@@ -23,20 +23,20 @@ interface IERC20Detailed is IERC20 {
 }
 
 library TokenLib {
-    function parseInfo(DataTypes.DepositedToken memory depositedToken, ERC20 token) internal view {
-        address tokenAddress = address(token);
-        depositedToken.token = tokenAddress;
+    function getMetadata(
+        ERC20 token
+    ) internal view returns (string memory name, string memory symbol, uint256 decimals) {
+        address _token = address(token);
+
         // MKR_ADDRESS
-        if (tokenAddress == 0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2) {
-            depositedToken.tokenSymbol = bytes32ToString(
-                IERC20DetailedBytes(tokenAddress).symbol()
-            );
-            depositedToken.tokenName = bytes32ToString(IERC20DetailedBytes(tokenAddress).name());
-            depositedToken.tokenDecimals = IERC20DetailedBytes(tokenAddress).decimals();
+        if (_token == 0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2) {
+            symbol = bytes32ToString(IERC20DetailedBytes(_token).symbol());
+            name = bytes32ToString(IERC20DetailedBytes(_token).name());
+            decimals = IERC20DetailedBytes(_token).decimals();
         } else {
-            depositedToken.tokenSymbol = IERC20Detailed(tokenAddress).symbol();
-            depositedToken.tokenName = IERC20Detailed(tokenAddress).name();
-            depositedToken.tokenDecimals = IERC20Detailed(tokenAddress).decimals();
+            symbol = IERC20Detailed(_token).symbol();
+            name = IERC20Detailed(_token).name();
+            decimals = IERC20Detailed(_token).decimals();
         }
     }
 
