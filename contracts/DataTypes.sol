@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 library DataTypes {
     struct PoolLiquidity {
-        uint256 totalSupply;
         uint256 totalCollateral;
         uint256 totalDebt;
         uint256 availableToBorrow;

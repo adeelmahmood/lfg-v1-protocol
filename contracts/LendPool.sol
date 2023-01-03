@@ -124,10 +124,10 @@ contract LendPool is Ownable, ReentrancyGuard {
         uint256 index = 0;
         // get all deposited tokens
         for (uint256 i; i < suppliedTokens.length; i++) {
-            uint256 userBalance = userBalances[_user][suppliedTokens[i].token];
-            if (userBalance > 0) {
+            uint256 _userBalance = userBalances[_user][suppliedTokens[i].token];
+            if (_userBalance > 0) {
                 DataTypes.TokenMetadata memory md = suppliedTokens[i];
-                md.balance = userBalance;
+                md.balance = _userBalance;
                 // gather user supplied token info
                 balances[index++] = md;
 
