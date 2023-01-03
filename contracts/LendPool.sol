@@ -36,6 +36,11 @@ contract LendPool is Ownable, ReentrancyGuard {
         core = LendPoolCore(_core);
     }
 
+    modifier isOwner(address user) {
+        require(user == msg.sender, "data can only be requested by owner");
+        _;
+    }
+
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
         // make sure user has sufficient balance to deposit
         if (_token.balanceOf(msg.sender) < _amount) {
@@ -104,6 +109,37 @@ contract LendPool is Ownable, ReentrancyGuard {
         return marketData;
     }
 
+    function getUserBalances(
+        address _user
+    ) public view isOwner(_user) returns (DataTypes.TokenMetadata[] memory) {
+        uint256 count = 0;
+        // find out count of user tokens
+        for (uint256 i; i < suppliedTokens.length; i++) {
+            if (userBalances[_user][suppliedTokens[i].token] > 0) {
+                count++;
+            }
+        }
+
+        DataTypes.TokenMetadata[] memory balances = new DataTypes.TokenMetadata[](count);
+        uint256 index = 0;
+        // get all deposited tokens
+        for (uint256 i; i < suppliedTokens.length; i++) {
+            uint256 userBalance = userBalances[_user][suppliedTokens[i].token];
+            if (userBalance > 0) {
+                DataTypes.TokenMetadata memory md = suppliedTokens[i];
+                md.balance = userBalance;
+                // gather user supplied token info
+                balances[index++] = md;
+
+                // get token liquidity info from market
+                DataTypes.TokenMarketData memory data = core.getTokenMarketData(md.token);
+                md.totalBalance = data.currentBalance;
+            }
+        }
+
+        return balances;
+    }
+
     function userBalance(address _user, address _token) public view returns (uint256) {
         return userBalances[_user][_token];
     }
@@ -111,9 +147,4 @@ contract LendPool is Ownable, ReentrancyGuard {
     function tokenBalance(address _token) public view returns (uint256) {
         return tokenBalances[_token];
     }
-
-    // function getUserBalances(address _user) public view returns (uint256) {
-    //     // get all deposited tokens
-    //     for (uint256 i; i < tokens.length; i++) {}
-    // }
 }

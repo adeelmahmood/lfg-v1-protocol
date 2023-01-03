@@ -68,9 +68,6 @@ describe("LendingPool Unit Tests", function () {
             });
             await deposit.wait();
 
-            // approve weth for tranfer
-            await WETH.approve(swapRouter.address, amount);
-
             // deposit weth into contract
             await WETH.approve(lendingPool.address, amount);
             await expect(lendingPool.deposit(WETH.address, amount)).to.emit(
@@ -87,9 +84,6 @@ describe("LendingPool Unit Tests", function () {
                 value: amount,
             });
             await deposit.wait();
-
-            // approve weth for tranfer
-            await WETH.approve(swapRouter.address, amount);
 
             // deposit weth into contract
             await WETH.approve(lendingPool.address, amount);
@@ -149,6 +143,30 @@ describe("LendingPool Unit Tests", function () {
             // grab the first token
             const firstToken = marketTokens[0];
             expect(firstToken.token).to.be.a.properAddress;
+        });
+
+        it("can deposit WETH and get updated token balances", async function () {
+            const amount = hre.ethers.utils.parseEther("1");
+
+            const depositWeth = async (user, amount) => {
+                const deposit = await WETH.connect(user).deposit({ value: amount });
+                await deposit.wait();
+                await WETH.connect(user).approve(lendingPool.address, amount);
+                await lendingPool.connect(user).deposit(WETH.address, amount);
+            };
+
+            // deposit WETH from multiple users
+            await depositWeth(deployer, amount);
+            const balances = await lendingPool.getUserBalances(deployer.address);
+            expect(balances.length).to.equal(1);
+            expect(Number(balances[0].balance)).to.be.equal(Number(amount));
+            expect(Number(balances[0].totalBalance)).to.be.equal(Number(amount));
+
+            await depositWeth(user, amount);
+            const balances2 = await lendingPool.connect(user).getUserBalances(user.address);
+            expect(balances2.length).to.equal(1);
+            expect(Number(balances2[0].balance)).to.be.equal(Number(amount));
+            expect(Number(balances2[0].totalBalance)).to.greaterThanOrEqual(Number(amount) * 2);
         });
     });
 });

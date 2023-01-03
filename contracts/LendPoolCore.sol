@@ -68,29 +68,20 @@ contract LendPoolCore {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
-        ProtocolDataProvider dataProvider = ProtocolDataProvider(
-            provider.getAddress(0x0100000000000000000000000000000000000000000000000000000000000000)
-        );
-
         DataTypes.TokenMarketData memory tmd;
         tmd.token = _token;
-
-        // get reserve data for this token
-        (tmd.currentBalance, , , , , , , , ) = dataProvider.getUserReserveData(
-            _token,
-            address(this)
-        );
 
         // get reserve info
         ReserveData memory reserveData = pool.getReserveData(_token);
 
-        tmd.balanceWithDeriveToken = IaToken(reserveData.aTokenAddress).balanceOf(address(this));
+        tmd.currentBalance = IaToken(reserveData.aTokenAddress).balanceOf(address(this));
         tmd.scaledBalance = IaToken(reserveData.aTokenAddress).scaledBalanceOf(address(this));
 
         // extract token metadata
         (tmd.tokenName, tmd.tokenSymbol, tmd.tokenDecimals) = ERC20(_token).getMetadata();
 
         // rates
+        tmd.liquidityIndex = reserveData.liquidityIndex;
         tmd.liquidityRate = reserveData.currentLiquidityRate;
         tmd.stableBorrowRate = reserveData.currentStableBorrowRate;
         tmd.variableBorrowRate = reserveData.currentVariableBorrowRate;
