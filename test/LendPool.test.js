@@ -26,7 +26,7 @@ describe("LendingPool Unit Tests", function () {
     let lendingPoolCore, lendingPoolCoreContract;
     let swapRouterContract, swapRouter;
     const chainId = network.config.chainId;
-    let WETH, DAI;
+    let WETH, DAI, USDT;
 
     beforeEach(async function () {
         accounts = await ethers.getSigners();
@@ -47,6 +47,7 @@ describe("LendingPool Unit Tests", function () {
 
         WETH = new ethers.Contract(contracts.WETH, ercAbi, deployer);
         DAI = new ethers.Contract(contracts.DAI, ercAbi, deployer);
+        USDT = new ethers.Contract(contracts.USDT, ercAbi, deployer);
     });
 
     describe("init", function () {
@@ -63,9 +64,7 @@ describe("LendingPool Unit Tests", function () {
             const amount = hre.ethers.utils.parseEther("1");
 
             // get some weth
-            const deposit = await WETH.deposit({
-                value: amount,
-            });
+            const deposit = await WETH.deposit({ value: amount });
             await deposit.wait();
 
             // deposit weth into contract
@@ -80,9 +79,7 @@ describe("LendingPool Unit Tests", function () {
             const amount = hre.ethers.utils.parseEther("1");
 
             // get some weth
-            const deposit = await WETH.deposit({
-                value: amount,
-            });
+            const deposit = await WETH.deposit({ value: amount });
             await deposit.wait();
 
             // deposit weth into contract
@@ -98,20 +95,54 @@ describe("LendingPool Unit Tests", function () {
             expect(finalWethBalance).to.be.equal(0);
         });
 
+        // it("can deposit USDT", async function () {
+        //     const amount = hre.ethers.utils.parseEther("10");
+
+        //     // get some weth
+        //     const deposit = await WETH.deposit({ value: amount });
+        //     await deposit.wait();
+
+        //     // approve weth for tranfer
+        //     await WETH.approve(swapRouter.address, amount);
+
+        //     // swap weth to usdt
+        //     const tx = await swapRouter.swap(WETH.address, USDT.address, amount, {
+        //         gasLimit: 300000,
+        //     });
+        //     tx.wait();
+        //     const afterDaiBalance = await USDT.balanceOf(deployer.address);
+
+        //     const usdtAmount = hre.ethers.utils.parseUnits("100", 6);
+
+        //     console.log("trying %s", afterDaiBalance);
+
+        //     // deposit usdt into contract
+        //     await USDT.approve(lendingPool.address, afterDaiBalance);
+        //     await lendingPool.deposit(USDT.address, afterDaiBalance);
+
+        //     // // assert user balance and total supply
+        //     // const userBalance = await lendingPool.userBalance(deployer.address, USDT.address);
+        //     // expect(userBalance).to.equal(amount);
+
+        //     // // assert user balance is zero
+        //     // const finalBalance = await USDT.balanceOf(deployer.address);
+        //     // expect(finalBalance).to.be.equal(0);
+        // });
+
         it("can deposit DAI", async function () {
             const amount = hre.ethers.utils.parseEther("1");
 
             // get some weth
-            const deposit = await WETH.deposit({
-                value: amount,
-            });
+            const deposit = await WETH.deposit({ value: amount });
             await deposit.wait();
 
             // approve weth for tranfer
             await WETH.approve(swapRouter.address, amount);
 
             // swap weth to dai
-            const tx = await swapRouter.swapWETHForDai(amount, { gasLimit: 300000 });
+            const tx = await swapRouter.swap(WETH.address, DAI.address, amount, {
+                gasLimit: 300000,
+            });
             tx.wait();
             const afterDaiBalance = await DAI.balanceOf(deployer.address);
 

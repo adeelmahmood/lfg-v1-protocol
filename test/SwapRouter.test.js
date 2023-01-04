@@ -21,7 +21,7 @@ const ercAbi = [
 describe("SwapRouter Unit Tests", function () {
     let swapRouterContract, swapRouter;
     const chainId = network.config.chainId;
-    let WETH, DAI;
+    let WETH, DAI, LINK;
 
     beforeEach(async function () {
         accounts = await ethers.getSigners();
@@ -36,34 +36,47 @@ describe("SwapRouter Unit Tests", function () {
 
         WETH = new ethers.Contract(contracts.WETH, ercAbi, deployer);
         DAI = new ethers.Contract(contracts.DAI, ercAbi, deployer);
+        LINK = new ethers.Contract(contracts.LINK, ercAbi, deployer);
     });
 
     describe("SwapRouter", function () {
-        it("can swap weth to dai", async function () {
+        it("can do a sinle swap and emit event", async function () {
             const amount = hre.ethers.utils.parseEther("1");
-            const deposit = await WETH.deposit({
-                value: amount,
-            });
+            const deposit = await WETH.deposit({ value: amount });
             await deposit.wait();
 
             await WETH.approve(swapRouter.address, amount);
 
             // get current balances
             const beforeDaiBalance = await DAI.balanceOf(deployer.address);
-            const beforeWethBalance = await WETH.balanceOf(deployer.address);
 
-            await expect(swapRouter.swapWETHForDai(beforeWethBalance)).to.emit(
+            await expect(swapRouter.swap(WETH.address, DAI.address, amount)).to.emit(
                 swapRouter,
-                "WethToDaiCompleted"
+                "TokenSwapCompleted"
             );
-            // tx.wait();
-
-            // get after balances
-            const afterDaiBalance = await DAI.balanceOf(deployer.address);
-            const afterWethBalance = await WETH.balanceOf(deployer.address);
 
             // assert after balances
+            const afterDaiBalance = await DAI.balanceOf(deployer.address);
             expect(afterDaiBalance).to.be.greaterThan(beforeDaiBalance);
+        });
+
+        it("can do double swap", async function () {
+            const amount = hre.ethers.utils.parseEther("1");
+            const deposit = await WETH.deposit({ value: amount });
+            await deposit.wait();
+
+            await WETH.approve(swapRouter.address, amount);
+            await swapRouter.swap(WETH.address, DAI.address, amount);
+
+            // get after DAI balance for second transfer
+            const afterDaiBalance = await DAI.balanceOf(deployer.address);
+
+            await DAI.approve(swapRouter.address, afterDaiBalance);
+            await swapRouter.swap(DAI.address, LINK.address, afterDaiBalance);
+
+            // assert after balances
+            const afterLinkBalance = await LINK.balanceOf(deployer.address);
+            expect(afterLinkBalance).to.be.greaterThan(0);
         });
     });
 });

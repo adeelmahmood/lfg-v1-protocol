@@ -9,30 +9,35 @@ import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract SwapRouter {
-    address public dai;
-    address public weth;
-
     ISwapRouter public swapRouter;
     uint24 public constant swapFee = 3000;
 
-    event WethToDaiCompleted(address indexed spender, uint256 amountIn, uint256 amountOut);
+    event TokenSwapCompleted(
+        address indexed spender,
+        address fromToken,
+        address toToken,
+        uint256 amountIn,
+        uint256 amountOut
+    );
 
-    constructor(address _dai, address _weth, ISwapRouter _swapRouter) {
-        dai = _dai;
-        weth = _weth;
+    constructor(ISwapRouter _swapRouter) {
         swapRouter = _swapRouter;
     }
 
-    function swapWETHForDai(uint256 amountIn) external returns (uint256 amountOut) {
-        // Transfer WETH to contract
-        TransferHelper.safeTransferFrom(weth, msg.sender, address(this), amountIn);
+    function swap(
+        address _fromToken,
+        address _toToken,
+        uint256 amountIn
+    ) external returns (uint256 amountOut) {
+        // Transfer fromToken to contract
+        TransferHelper.safeTransferFrom(_fromToken, msg.sender, address(this), amountIn);
 
         // Approve contract to swap
-        TransferHelper.safeApprove(weth, address(swapRouter), amountIn);
+        TransferHelper.safeApprove(_fromToken, address(swapRouter), amountIn);
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: weth,
-            tokenOut: dai,
+            tokenIn: _fromToken,
+            tokenOut: _toToken,
             fee: swapFee,
             recipient: msg.sender,
             deadline: block.timestamp,
@@ -43,7 +48,7 @@ contract SwapRouter {
 
         // The call to `exactInputSingle` executes the swap.
         amountOut = swapRouter.exactInputSingle(params);
-        emit WethToDaiCompleted(msg.sender, amountIn, amountOut);
+        emit TokenSwapCompleted(msg.sender, _fromToken, _toToken, amountIn, amountOut);
         return amountOut;
     }
 }

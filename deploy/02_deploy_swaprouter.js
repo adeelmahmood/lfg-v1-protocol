@@ -8,11 +8,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
-    const args = [
-        networkConfig[chainId].contracts.DAI,
-        networkConfig[chainId].contracts.WETH,
-        networkConfig[chainId].contracts.UNISWAP_ROUTER,
-    ];
+    const args = [networkConfig[chainId].contracts.UNISWAP_ROUTER];
 
     const swapRouter = await deploy("SwapRouter", {
         from: deployer,
