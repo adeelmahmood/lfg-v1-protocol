@@ -20,6 +20,7 @@ library DataTypes {
         uint256 liquidityIndex;
         uint256 stableBorrowRate;
         uint256 variableBorrowRate;
+        uint256 walletBalance;
     }
 
     struct TokenMetadata {

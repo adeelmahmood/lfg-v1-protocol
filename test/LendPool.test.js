@@ -1,6 +1,6 @@
 const { expect, assert } = require("chai");
 const { ethers, deployments, getNamedAccounts, network } = require("hardhat");
-const { networkConfig, developmentChains } = require("../hardhat-helper-config");
+const { networkConfig, developmentChains, MAX_INT } = require("../hardhat-helper-config");
 
 const {
     BN, // Big Number support
@@ -95,6 +95,7 @@ describe("LendingPool Unit Tests", function () {
             expect(finalWethBalance).to.be.equal(0);
         });
 
+        // TODO: figure out USDT deposit
         // it("can deposit USDT", async function () {
         //     const amount = hre.ethers.utils.parseEther("10");
 
@@ -176,7 +177,7 @@ describe("LendingPool Unit Tests", function () {
             expect(firstToken.token).to.be.a.properAddress;
         });
 
-        it("can deposit WETH and get updated token balances", async function () {
+        it("can deposit WETH from multiple users and get updated token balances", async function () {
             const amount = hre.ethers.utils.parseEther("1");
 
             const depositWeth = async (user, amount) => {
@@ -188,16 +189,65 @@ describe("LendingPool Unit Tests", function () {
 
             // deposit WETH from multiple users
             await depositWeth(deployer, amount);
-            const balances = await lendingPool.getUserBalances(deployer.address);
+            const balances = await lendingPool.getDeposits();
             expect(balances.length).to.equal(1);
             expect(Number(balances[0].balance)).to.be.equal(Number(amount));
             expect(Number(balances[0].totalBalance)).to.be.equal(Number(amount));
 
             await depositWeth(user, amount);
-            const balances2 = await lendingPool.connect(user).getUserBalances(user.address);
+            const balances2 = await lendingPool.connect(user).getDeposits();
             expect(balances2.length).to.equal(1);
             expect(Number(balances2[0].balance)).to.be.equal(Number(amount));
             expect(Number(balances2[0].totalBalance)).to.greaterThanOrEqual(Number(amount) * 2);
+        });
+
+        it("cannot withdraw with no balance", async function () {
+            const amount = hre.ethers.utils.parseEther("1");
+
+            await expect(lendingPool.withdraw(DAI.address, amount)).to.be.revertedWithCustomError(
+                lendingPool,
+                "LendingPool__WithdrawRequestedWithNoBalance"
+            );
+        });
+
+        it("cannot withdraw more than balance", async function () {
+            const amount = hre.ethers.utils.parseEther("1");
+            const amountMore = hre.ethers.utils.parseEther("2");
+
+            // get some weth
+            const deposit = await WETH.deposit({ value: amount });
+            await deposit.wait();
+
+            // deposit weth into contract
+            await WETH.approve(lendingPool.address, amount);
+            await lendingPool.deposit(WETH.address, amount);
+
+            // try to withdraw more than depositted
+            await expect(
+                lendingPool.withdraw(WETH.address, amountMore)
+            ).to.be.revertedWithCustomError(
+                lendingPool,
+                "LendingPool__WithdrawAmountMoreThanBalance"
+            );
+        });
+
+        it("can deposit WETH and withdraw the full amount", async function () {
+            const amount = hre.ethers.utils.parseEther("1");
+
+            // get some weth
+            const deposit = await WETH.deposit({ value: amount });
+            await deposit.wait();
+
+            // deposit weth into contract
+            await WETH.approve(lendingPool.address, amount);
+            await lendingPool.deposit(WETH.address, amount);
+
+            // withdraw the full amount
+            await lendingPool.withdraw(WETH.address, 0);
+
+            // assert user balance
+            const balance = await WETH.balanceOf(deployer.address);
+            expect(balance).to.be.greaterThanOrEqual(amount);
         });
     });
 });

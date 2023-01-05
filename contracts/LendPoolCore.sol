@@ -35,6 +35,25 @@ contract LendPoolCore {
         pool.deposit(_token, _amount, address(this), referral);
     }
 
+    function withdraw(address _token, uint256 _amount, address _to) external returns (uint256) {
+        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
+        LendingPool pool = LendingPool(provider.getLendingPool());
+
+        // complete withdrawl
+        if (_amount == 0) {
+            _amount = type(uint256).max;
+        }
+
+        // TODO: wrap pool calls in require
+        // withdraw from pool and transfer to user
+        uint256 withdrawnAmount = pool.withdraw(_token, _amount, address(this));
+
+        // transfer withdraw tokens back to contract
+        ERC20(_token).safeTransferFrom(address(this), _to, withdrawnAmount);
+
+        return withdrawnAmount;
+    }
+
     function getCurrentLiquidity()
         external
         view

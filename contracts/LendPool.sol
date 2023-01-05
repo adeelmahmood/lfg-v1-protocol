@@ -20,64 +20,75 @@ contract LendPool is Ownable, ReentrancyGuard {
     LendPoolCore core;
 
     // token address => amount
-    mapping(address => uint256) public tokenBalances;
+    mapping(address => uint256) private tokenBalances;
     // user address => token address => amount
-    mapping(address => mapping(address => uint256)) public userBalances;
+    mapping(address => mapping(address => uint256)) private userBalances;
     // deposited tokens array
     DataTypes.TokenMetadata[] public suppliedTokens;
 
     /* Events */
     event DepositMade(address indexed user, address indexed token, uint256 amount);
+    event WithdrawlMade(address indexed user, address indexed token, uint256 amount);
 
     /* Errors */
     error LendingPool__InsufficientAmountForDeposit();
+    error LendingPool__WithdrawAmountMoreThanBalance();
+    error LendingPool__WithdrawRequestedWithNoBalance();
 
     constructor(address _core) {
         core = LendPoolCore(_core);
     }
 
-    modifier isOwner(address user) {
-        require(user == msg.sender, "data can only be requested by owner");
-        _;
-    }
-
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
+        address _user = msg.sender;
         // make sure user has sufficient balance to deposit
-        if (_token.balanceOf(msg.sender) < _amount) {
+        if (_token.balanceOf(_user) < _amount) {
             revert LendingPool__InsufficientAmountForDeposit();
         }
 
         // transfer given tokens to lending pool core as that will
         // do the transfer to underlying market pool
-        _token.safeTransferFrom(msg.sender, address(core), _amount);
-
-        // update balances
-        tokenBalances[address(_token)] += _amount;
-        userBalances[msg.sender][address(_token)] += _amount;
-        // if first deposit for this token, add to tokens array
-        addToTokens(_token);
+        _token.safeTransferFrom(_user, address(core), _amount);
 
         // forward the tokens to core
         core.deposit(address(_token), _amount);
 
+        // update balances
+        tokenBalances[address(_token)] += _amount;
+        userBalances[_user][address(_token)] += _amount;
+        // if first deposit for this token, add to tokens array
+        addToTokens(_token);
+
         // emit deposit event
-        emit DepositMade(msg.sender, address(_token), _amount);
+        emit DepositMade(_user, address(_token), _amount);
     }
 
-    function addToTokens(ERC20 token) internal {
-        for (uint256 i; i < suppliedTokens.length; i++) {
-            if (suppliedTokens[i].token == address(token)) {
-                return;
-            }
+    function withdraw(ERC20 _token, uint256 _amount) external nonReentrant {
+        address _user = msg.sender;
+        // check user balance for given token
+        uint256 balance = userBalances[_user][address(_token)];
+        if (balance == 0) {
+            revert LendingPool__WithdrawRequestedWithNoBalance();
         }
 
-        // add deposited token info
-        DataTypes.TokenMetadata memory tokenMD;
-        // extract token metadata
-        (tokenMD.name, tokenMD.symbol, tokenMD.decimals) = token.getMetadata();
-        tokenMD.token = address(token);
-        // add to tokens array
-        suppliedTokens.push(tokenMD);
+        // enough balance to withdraw
+        if (balance < _amount) {
+            revert LendingPool__WithdrawAmountMoreThanBalance();
+        }
+
+        // forward the request to withdraw to core
+        uint256 withdrawnAmount = core.withdraw(address(_token), _amount, address(this));
+
+        // transfer withdraw tokens back to user
+        _token.safeTransferFrom(address(this), _user, withdrawnAmount);
+
+        // update balances
+        tokenBalances[address(_token)] -= _amount == 0 ? balance : _amount;
+        userBalances[_user][address(_token)] -= _amount == 0 ? balance : _amount;
+        // TODO: update supplied tokens and may be delete token if no balance left
+
+        // emit withdraw event
+        emit WithdrawlMade(_user, address(_token), _amount);
     }
 
     function getLiquidity() external view returns (DataTypes.PoolLiquidity memory) {
@@ -104,15 +115,18 @@ contract LendPool is Ownable, ReentrancyGuard {
         );
         for (uint256 i; i < activeTokens.length; i++) {
             marketData[i] = core.getTokenMarketData(activeTokens[i]);
+
+            // get current user wallet balance for this reserve
+            uint256 walletBalance = ERC20(activeTokens[i]).balanceOf(msg.sender);
+            marketData[i].walletBalance = walletBalance;
         }
 
         return marketData;
     }
 
-    function getUserBalances(
-        address _user
-    ) public view isOwner(_user) returns (DataTypes.TokenMetadata[] memory) {
+    function getDeposits() public view returns (DataTypes.TokenMetadata[] memory) {
         uint256 count = 0;
+        address _user = msg.sender;
         // find out count of user tokens
         for (uint256 i; i < suppliedTokens.length; i++) {
             if (userBalances[_user][suppliedTokens[i].token] > 0) {
@@ -138,6 +152,22 @@ contract LendPool is Ownable, ReentrancyGuard {
         }
 
         return balances;
+    }
+
+    function addToTokens(ERC20 token) internal {
+        for (uint256 i; i < suppliedTokens.length; i++) {
+            if (suppliedTokens[i].token == address(token)) {
+                return;
+            }
+        }
+
+        // add deposited token info
+        DataTypes.TokenMetadata memory tokenMD;
+        // extract token metadata
+        (tokenMD.name, tokenMD.symbol, tokenMD.decimals) = token.getMetadata();
+        tokenMD.token = address(token);
+        // add to tokens array
+        suppliedTokens.push(tokenMD);
     }
 
     function userBalance(address _user, address _token) public view returns (uint256) {

@@ -12,6 +12,8 @@ interface LendingPool {
         uint16 referralCode
     ) external;
 
+    function withdraw(address asset, uint256 amount, address to) external returns (uint256);
+
     function getUserAccountData(
         address user
     )
