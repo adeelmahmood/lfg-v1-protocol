@@ -142,12 +142,13 @@ contract LendPool is Ownable, ReentrancyGuard {
             if (_userBalance > 0) {
                 DataTypes.TokenMetadata memory md = suppliedTokens[i];
                 md.balance = _userBalance;
-                // gather user supplied token info
-                balances[index++] = md;
 
                 // get token liquidity info from market
                 DataTypes.TokenMarketData memory data = core.getTokenMarketData(md.token);
                 md.totalBalance = data.currentBalance;
+
+                // gather user supplied token info
+                balances[index++] = md;
             }
         }
 
