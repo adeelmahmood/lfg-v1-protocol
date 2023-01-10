@@ -37,10 +37,7 @@ const networkConfig = {
 
 const developmentChains = ["hardhat", "localhost"];
 
-const MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-
 module.exports = {
     networkConfig,
     developmentChains,
-    MAX_INT,
 };

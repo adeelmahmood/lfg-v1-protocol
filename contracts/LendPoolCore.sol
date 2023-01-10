@@ -24,18 +24,18 @@ contract LendPoolCore {
         aave = _aave;
     }
 
-    function deposit(address _token, uint256 _amount) external {
+    function deposit(ERC20 _token, uint256 _amount) external {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
         uint16 referral = 0;
 
         // approve and send to aave
-        IERC20(_token).approve(address(pool), _amount);
-        pool.deposit(_token, _amount, address(this), referral);
+        _token.approve(address(pool), _amount);
+        pool.deposit(address(_token), _amount, address(this), referral);
     }
 
-    function withdraw(address _token, uint256 _amount, address _to) external returns (uint256) {
+    function withdraw(ERC20 _token, uint256 _amount, address _to) external returns (uint256) {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
@@ -46,10 +46,10 @@ contract LendPoolCore {
 
         // TODO: wrap pool calls in require
         // withdraw from pool and transfer to user
-        uint256 withdrawnAmount = pool.withdraw(_token, _amount, address(this));
+        uint256 withdrawnAmount = pool.withdraw(address(_token), _amount, address(this));
 
         // transfer withdraw tokens back to contract
-        ERC20(_token).safeTransferFrom(address(this), _to, withdrawnAmount);
+        _token.safeTransfer(_to, withdrawnAmount);
 
         return withdrawnAmount;
     }
