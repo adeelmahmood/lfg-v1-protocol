@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
 import "./LendPoolCore.sol";
+import "./GovToken.sol";
 import "./DataTypes.sol";
 import "./libraries/TokenLib.sol";
 
@@ -13,11 +14,13 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract LendPool is Ownable, ReentrancyGuard {
+    // TODO: use safe math for operations
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
     using TokenLib for ERC20;
 
     LendPoolCore core;
+    GovToken govToken;
 
     // token address => amount
     mapping(address => uint256) private tokenBalances;
@@ -35,12 +38,34 @@ contract LendPool is Ownable, ReentrancyGuard {
     error LendingPool__WithdrawAmountMoreThanBalance();
     error LendingPool__WithdrawRequestedWithNoBalance();
 
-    constructor(address _core) {
+    constructor(address _core, address _govToken) {
         core = LendPoolCore(_core);
+        govToken = GovToken(_govToken);
     }
 
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
         address _user = msg.sender;
+        address _tokenAddress = address(_token);
+
+        validateAndPrepareDeposit(_user, _token, _amount);
+
+        updateStateForDeposit(_user, _token, _amount);
+
+        // issue governance tokens equivalent to the deposited amount
+        govToken.mint(_user, _amount);
+
+        // forward the tokens to core
+        core.deposit(_token, _amount);
+
+        // emit deposit event
+        emit DepositMade(_user, _tokenAddress, _amount);
+    }
+
+    function validateAndPrepareDeposit(
+        address _user,
+        ERC20 _token,
+        uint256 _amount
+    ) internal returns (uint256) {
         address _tokenAddress = address(_token);
 
         // make sure user has sufficient balance to deposit
@@ -53,24 +78,53 @@ contract LendPool is Ownable, ReentrancyGuard {
         // do the transfer to underlying market pool
         _token.safeTransferFrom(_user, address(core), _amount);
 
-        // forward the tokens to core
-        core.deposit(_token, _amount);
+        return balance;
+    }
+
+    function updateStateForDeposit(
+        address _user,
+        ERC20 _token,
+        uint256 _amount
+    ) internal returns (bool isFirstDeposit, uint256 newTokenBalance, uint256 newUserBalance) {
+        address _tokenAddress = address(_token);
 
         // update balances
         tokenBalances[_tokenAddress] += _amount;
         userBalances[_user][_tokenAddress] += _amount;
-        // if first deposit for this token, add to tokens array
-        addToTokens(_token);
 
-        // emit deposit event
-        emit DepositMade(_user, _tokenAddress, _amount);
+        // if first deposit for this token, add to tokens array
+        isFirstDeposit = addToTokens(_token);
+        newTokenBalance = tokenBalances[_tokenAddress];
+        newUserBalance = userBalances[_user][_tokenAddress];
     }
 
     function withdraw(ERC20 _token, uint256 _amount) external nonReentrant {
         address _user = msg.sender;
         address _tokenAddress = address(_token);
 
+        uint256 balance = validateAndPrepareWithdraw(_user, _token, _amount);
+
+        updateStateForWithdraw(_user, _token, _amount, balance);
+
+        // burn the lend tokens
+        govToken.burnFrom(_user, _amount == 0 ? balance : _amount);
+
+        // forward the request to withdraw to core
+        uint256 withdrawnAmount = core.withdraw(_token, _amount, _user);
+
+        // emit withdraw event
+        emit WithdrawlMade(_user, _tokenAddress, withdrawnAmount);
+    }
+
+    function validateAndPrepareWithdraw(
+        address _user,
+        ERC20 _token,
+        uint256 _amount
+    ) internal view returns (uint256) {
+        address _tokenAddress = address(_token);
+
         // check user balance for given token
+        // TODO: check GovToken balance as well, may be better to use require for both
         uint256 balance = userBalances[_user][_tokenAddress];
         if (balance == 0) {
             revert LendingPool__WithdrawRequestedWithNoBalance();
@@ -81,16 +135,24 @@ contract LendPool is Ownable, ReentrancyGuard {
             revert LendingPool__WithdrawAmountMoreThanBalance();
         }
 
-        // forward the request to withdraw to core
-        uint256 withdrawnAmount = core.withdraw(_token, _amount, _user);
+        return balance;
+    }
+
+    function updateStateForWithdraw(
+        address _user,
+        ERC20 _token,
+        uint256 _amount,
+        uint256 balance
+    ) internal returns (uint256 newTokenBalance, uint256 newUserBalance) {
+        address _tokenAddress = address(_token);
 
         // update balances
         tokenBalances[_tokenAddress] -= _amount == 0 ? balance : _amount;
         userBalances[_user][_tokenAddress] -= _amount == 0 ? balance : _amount;
         // TODO: update supplied tokens and may be delete token if no balance left
 
-        // emit withdraw event
-        emit WithdrawlMade(_user, _tokenAddress, withdrawnAmount);
+        newTokenBalance = tokenBalances[_tokenAddress];
+        newUserBalance = userBalances[_user][_tokenAddress];
     }
 
     function getLiquidity() external view returns (DataTypes.PoolLiquidity memory) {
@@ -154,13 +216,14 @@ contract LendPool is Ownable, ReentrancyGuard {
         return balances;
     }
 
-    function addToTokens(ERC20 token) internal {
+    function addToTokens(ERC20 token) internal returns (bool isFirstDeposit) {
         for (uint256 i; i < suppliedTokens.length; i++) {
             if (suppliedTokens[i].token == address(token)) {
-                return;
+                return false;
             }
         }
 
+        isFirstDeposit = true;
         // add deposited token info
         DataTypes.TokenMetadata memory tokenMD;
         // extract token metadata

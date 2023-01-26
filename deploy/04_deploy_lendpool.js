@@ -9,8 +9,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
     const core = await ethers.getContract("LendPoolCore");
+    const token = await ethers.getContract("GovToken");
 
-    const args = [core.address];
+    const args = [core.address, token.address];
 
     const lendingPool = await deploy("LendPool", {
         from: deployer,
@@ -23,8 +24,10 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         log("Verifying...");
         await verify(lendingPool.address, args);
     }
-
     log("LendingPool contract deployed successfully");
+
+    await token.transferOwnership(lendingPool.address);
+    log("GovToken ownership tranferred to LendPool");
 };
 
 module.exports.tags = ["all", "lendingpool"];

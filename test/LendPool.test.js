@@ -24,6 +24,7 @@ const ercAbi = [
 describe("LendingPool Unit Tests", function () {
     let lendingPoolContract, lendingPool;
     let lendingPoolCore, lendingPoolCoreContract;
+    let govTokenContract, govToken;
     let swapRouterContract, swapRouter;
     const chainId = network.config.chainId;
     let WETH, DAI, USDT;
@@ -42,6 +43,9 @@ describe("LendingPool Unit Tests", function () {
 
         lendingPoolCoreContract = await ethers.getContract("LendPoolCore");
         lendingPoolCore = lendingPoolCoreContract.connect(deployer);
+
+        govTokenContract = await ethers.getContract("GovToken");
+        govToken = govTokenContract.connect(deployer);
 
         const contracts = networkConfig[chainId].contracts;
 
@@ -73,6 +77,22 @@ describe("LendingPool Unit Tests", function () {
                 lendingPool,
                 "DepositMade"
             );
+        });
+
+        it("mints lend token equal to deposited amount", async function () {
+            const amount = hre.ethers.utils.parseEther("10");
+
+            // get some weth
+            const deposit = await WETH.deposit({ value: amount });
+            await deposit.wait();
+
+            // deposit weth into contract
+            await WETH.approve(lendingPool.address, amount);
+            await lendingPool.deposit(WETH.address, amount);
+
+            // check govToken balance
+            const govTokenBalance = await govTokenContract.balanceOf(deployer.address);
+            expect(govTokenBalance).to.eq(amount);
         });
 
         it("can deposit WETH", async function () {
@@ -169,7 +189,7 @@ describe("LendingPool Unit Tests", function () {
         });
 
         it("cant retrieve market tokens", async function () {
-            const marketTokens = await lendingPool.getAvailableTokens();
+            const marketTokens = await lendingPool.getAvailableTokens(deployer.address);
             expect(marketTokens.length).to.be.greaterThan(0);
 
             // grab the first token
@@ -189,13 +209,13 @@ describe("LendingPool Unit Tests", function () {
 
             // deposit WETH from multiple users
             await depositWeth(deployer, amount);
-            const balances = await lendingPool.getDeposits();
+            const balances = await lendingPool.getDeposits(deployer.address);
             expect(balances.length).to.equal(1);
             expect(Number(balances[0].balance)).to.be.equal(Number(amount));
             expect(Number(balances[0].totalBalance)).to.be.equal(Number(amount));
 
             await depositWeth(user, amount);
-            const balances2 = await lendingPool.connect(user).getDeposits();
+            const balances2 = await lendingPool.connect(user).getDeposits(user.address);
             expect(balances2.length).to.equal(1);
             expect(Number(balances2[0].balance)).to.be.equal(Number(amount));
             expect(Number(balances2[0].totalBalance)).to.greaterThanOrEqual(Number(amount) * 2);
@@ -243,11 +263,16 @@ describe("LendingPool Unit Tests", function () {
             await lendingPool.deposit(WETH.address, amount);
 
             // withdraw the full amount
+            await govToken.approve(lendingPool.address, amount);
             await lendingPool.withdraw(WETH.address, 0);
 
             // assert user balance
             const balance = await WETH.balanceOf(deployer.address);
             expect(balance).to.be.greaterThanOrEqual(amount);
+
+            // check govToken balance to be zero
+            const govTokenBalance = await govToken.balanceOf(deployer.address);
+            expect(govTokenBalance).to.eq(0);
         });
     });
 });

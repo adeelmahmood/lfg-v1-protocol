@@ -1,4 +1,4 @@
-const { network } = require("hardhat");
+const { network, ethers } = require("hardhat");
 const { developmentChains, networkConfig } = require("../hardhat-helper-config");
 const { verify } = require("../utils/verify");
 
@@ -8,9 +8,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
-    const args = [networkConfig[chainId].contracts.AAVE_LP_PROVIDER];
+    const args = [];
 
-    const core = await deploy("LendPoolCore", {
+    const token = await deploy("GovToken", {
         from: deployer,
         args: args,
         log: true,
@@ -19,10 +19,10 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(core.address, args);
+        await verify(token.address, args);
     }
 
-    log("LendPoolCore contract deployed successfully");
+    log("LendToken contract deployed successfully");
 };
 
-module.exports.tags = ["all", "lendingpoolcore"];
+module.exports.tags = ["all", "govtoken"];
