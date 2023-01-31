@@ -25,6 +25,7 @@ describe("LendingPool Unit Tests", function () {
     let lendingPoolContract, lendingPool;
     let lendingPoolCore, lendingPoolCoreContract;
     let govTokenContract, govToken;
+    let govTokenHandler;
     let swapRouterContract, swapRouter;
     const chainId = network.config.chainId;
     let WETH, DAI, USDT;
@@ -46,6 +47,8 @@ describe("LendingPool Unit Tests", function () {
 
         govTokenContract = await ethers.getContract("GovToken");
         govToken = govTokenContract.connect(deployer);
+
+        govTokenHandler = await ethers.getContract("GovTokenHandler");
 
         const contracts = networkConfig[chainId].contracts;
 
@@ -264,6 +267,8 @@ describe("LendingPool Unit Tests", function () {
 
             // withdraw the full amount
             await govToken.approve(lendingPool.address, amount);
+            // this is needed to burn the gov tokens
+            await govToken.approve(govTokenHandler.address, amount);
             await lendingPool.withdraw(WETH.address, 0);
 
             // assert user balance

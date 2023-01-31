@@ -9,9 +9,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "./interfaces/aave/LendingPoolAddressesProvider.sol";
-import "./interfaces/aave/LendingPool.sol";
-import "./interfaces/aave/ProtocolDataProvider.sol";
+import "./external/aave/LendingPoolAddressesProvider.sol";
+import "./external/aave/LendingPool.sol";
+import "./external/aave/ProtocolDataProvider.sol";
 
 contract LendPoolCore {
     using SafeERC20 for ERC20;

@@ -24,7 +24,7 @@ const ercAbi = [
 
 describe("GovToken Unit Tests", function () {
     let govTokenContract, govToken;
-    let lendingPoolContract, lendingPool, lendingPoolSigner;
+    let govTokenHandlerContract, govTokenHandler, govTokenHandlerSigner;
 
     const chainId = network.config.chainId;
 
@@ -34,13 +34,13 @@ describe("GovToken Unit Tests", function () {
         user = accounts[1];
         await deployments.fixture("all");
 
-        lendingPoolContract = await ethers.getContract("LendPool");
-        lendingPool = lendingPoolContract.connect(deployer);
+        govTokenHandlerContract = await ethers.getContract("GovTokenHandler");
+        govTokenHandler = govTokenHandlerContract.connect(deployer);
 
         //this is needed because govToken requires lending pool as owner
-        await impersonateAccount(lendingPool.address);
-        await setBalance(lendingPool.address, 100n ** 18n);
-        lendingPoolSigner = await ethers.getSigner(lendingPool.address);
+        await impersonateAccount(govTokenHandler.address);
+        await setBalance(govTokenHandler.address, 100n ** 18n);
+        govTokenHandlerSigner = await ethers.getSigner(govTokenHandler.address);
 
         govTokenContract = await ethers.getContract("GovToken");
         govToken = govTokenContract.connect(deployer);
@@ -50,7 +50,7 @@ describe("GovToken Unit Tests", function () {
         it("can mint governance tokens", async function () {
             const amount = hre.ethers.utils.parseEther("10");
 
-            await govToken.connect(lendingPoolSigner).mint(deployer.address, amount);
+            await govToken.connect(govTokenHandlerSigner).mint(deployer.address, amount);
 
             const balance = await govToken.balanceOf(deployer.address);
             expect(balance).to.eq(amount);
@@ -59,9 +59,9 @@ describe("GovToken Unit Tests", function () {
         it("can burn token", async function () {
             const amount = hre.ethers.utils.parseEther("10");
 
-            await govToken.connect(lendingPoolSigner).mint(deployer.address, amount);
-            await govToken.approve(lendingPool.address, amount);
-            await govToken.connect(lendingPoolSigner).burnFrom(deployer.address, amount);
+            await govToken.connect(govTokenHandlerSigner).mint(deployer.address, amount);
+            await govToken.approve(govTokenHandler.address, amount);
+            await govToken.connect(govTokenHandlerSigner).burnFrom(deployer.address, amount);
 
             const balance = await govToken.balanceOf(deployer.address);
             expect(balance).to.eq(0);

@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
 import "./LendPoolCore.sol";
-import "./GovToken.sol";
+import "./governance/GovTokenHandler.sol";
 import "./DataTypes.sol";
 import "./libraries/TokenLib.sol";
 
@@ -20,7 +20,7 @@ contract LendPool is Ownable, ReentrancyGuard {
     using TokenLib for ERC20;
 
     LendPoolCore core;
-    GovToken govToken;
+    GovTokenHandler govTokenHandler;
 
     // token address => amount
     mapping(address => uint256) private tokenBalances;
@@ -38,9 +38,9 @@ contract LendPool is Ownable, ReentrancyGuard {
     error LendingPool__WithdrawAmountMoreThanBalance();
     error LendingPool__WithdrawRequestedWithNoBalance();
 
-    constructor(address _core, address _govToken) {
+    constructor(address _core, address _govTokenHandler) {
         core = LendPoolCore(_core);
-        govToken = GovToken(_govToken);
+        govTokenHandler = GovTokenHandler(_govTokenHandler);
     }
 
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
@@ -52,7 +52,7 @@ contract LendPool is Ownable, ReentrancyGuard {
         updateStateForDeposit(_user, _token, _amount);
 
         // issue governance tokens equivalent to the deposited amount
-        govToken.mint(_user, _amount);
+        govTokenHandler.mint(_user, _token, _amount);
 
         // forward the tokens to core
         core.deposit(_token, _amount);
@@ -107,7 +107,7 @@ contract LendPool is Ownable, ReentrancyGuard {
         updateStateForWithdraw(_user, _token, _amount, balance);
 
         // burn the lend tokens
-        govToken.burnFrom(_user, _amount == 0 ? balance : _amount);
+        govTokenHandler.burn(_user, _token, _amount == 0 ? balance : _amount);
 
         // forward the request to withdraw to core
         uint256 withdrawnAmount = core.withdraw(_token, _amount, _user);
@@ -239,5 +239,13 @@ contract LendPool is Ownable, ReentrancyGuard {
 
     function tokenBalance(address _token) public view returns (uint256) {
         return tokenBalances[_token];
+    }
+
+    function getChainId() internal view returns (uint) {
+        uint256 chainId;
+        assembly {
+            chainId := chainid()
+        }
+        return chainId;
     }
 }
