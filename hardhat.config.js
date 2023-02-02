@@ -17,15 +17,34 @@ module.exports = {
         compilers: [
             {
                 version: "0.6.11",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1,
+                    },
+                },
             },
             {
                 version: "0.8.9",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1,
+                    },
+                },
             },
             {
                 version: "0.8.10",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1,
+                    },
+                },
             },
         ],
     },
+
     networks: {
         hardhat: {
             chainId: 31337,

@@ -43,6 +43,8 @@ contract LendPool is Ownable, ReentrancyGuard {
         govTokenHandler = GovTokenHandler(_govTokenHandler);
     }
 
+    receive() external payable {}
+
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
         address _user = msg.sender;
         address _tokenAddress = address(_token);

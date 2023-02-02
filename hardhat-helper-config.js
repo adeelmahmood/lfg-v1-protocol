@@ -32,6 +32,12 @@ const networkConfig = {
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
             AAVE_LP_PROVIDER: "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
         },
+        governance: {
+            MIN_DELAY: 0, // 3600 = 1 hour - after vote passes, there is one hour delay
+            QUORUM_PERC: 4, // need 4 of voters to pass the vote
+            VOTING_PERIOD: 5, // blocks for how long voting stays open
+            VOTING_DELAY: 1, // blocks before proposal becomes active
+        },
     },
 };
 

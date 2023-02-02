@@ -4,7 +4,7 @@ function sleep(timeInMs) {
     return new Promise((resolve) => setTimeout(resolve, timeInMs));
 }
 
-const moveBlocks = async (numOfBlocks, sleepTime) => {
+const moveBlocks = async (numOfBlocks, sleepTime = 0) => {
     console.log(`Moving ${numOfBlocks} with sleep time ${sleepTime}`);
     for (let i = 0; i < numOfBlocks; i++) {
         await network.provider.request({
