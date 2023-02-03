@@ -30,6 +30,19 @@ describe("ProposalManager Unit Tests", function () {
 
     const chainId = network.config.chainId;
 
+    const mintGovTokens = async (user) => {
+        // mint governance token for deployer
+        const WETH = new ethers.Contract(networkConfig[chainId].contracts.WETH, ercAbi, user);
+        const amount = hre.ethers.utils.parseEther("2");
+        await tokenHandler.mint(user.address, WETH.address, amount);
+    };
+
+    const delegate = async (delegateTo) => {
+        // delegate gov tokens
+        const delegateTx = await token.delegate(delegateTo.address);
+        await delegateTx.wait(1);
+    };
+
     beforeEach(async function () {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
@@ -47,6 +60,9 @@ describe("ProposalManager Unit Tests", function () {
 
         tokenContract = await ethers.getContract("GovToken");
         token = tokenContract.connect(deployer);
+
+        mintGovTokens(deployer);
+        delegate(deployer);
     });
 
     describe("all tests", function () {
@@ -64,18 +80,6 @@ describe("ProposalManager Unit Tests", function () {
             const desc = "test";
             const PROPOSAL_DESCRIPTION = `Proposal ${id}`;
 
-            // mint governance token for deployer
-            const WETH = new ethers.Contract(
-                networkConfig[chainId].contracts.WETH,
-                ercAbi,
-                deployer
-            );
-            const amount = hre.ethers.utils.parseEther("0.1");
-            await tokenHandler.mint(deployer.address, WETH.address, amount);
-
-            // delegate gov tokens
-            const delegateTx = await token.delegate(deployer.address);
-            await delegateTx.wait(1);
             let balance = await token.balanceOf(deployer.address);
             console.log(`[start] gov tokens supply = ${balance / 10 ** 18}`);
 
@@ -96,6 +100,7 @@ describe("ProposalManager Unit Tests", function () {
             const proposalId = proposeReciept.events[0].args.proposalId;
             let proposalState = await governor.state(proposalId);
             console.log(`[create] Proposal id: ${proposalId} in state ${proposalState}`);
+            expect(proposalState).to.eq(0);
             await moveBlocks(governance.VOTING_DELAY + 1);
 
             // vote
@@ -103,9 +108,11 @@ describe("ProposalManager Unit Tests", function () {
             await voteTx.wait(1);
             proposalState = await governor.state(proposalId);
             console.log(`[vote casted] Proposal id: ${proposalId} in state ${proposalState}`);
+            expect(proposalState).to.eq(1);
             await moveBlocks(governance.VOTING_PERIOD + 10);
 
             const hasVoted = await governor.hasVoted(proposalId, deployer.address);
+            expect(hasVoted).to.eq(true);
             console.log(`deployer has voted: ${hasVoted}`);
             console.log(
                 `AgainstVotes: ${(
@@ -127,7 +134,6 @@ describe("ProposalManager Unit Tests", function () {
             );
             balance = await token.balanceOf(deployer.address);
             console.log(`[after casting vote] gov tokens supply = ${balance / 10 ** 18}`);
-            console.log("---------------------------------------------------------------");
 
             // queue
             const descriptionHash = ethers.utils.id(PROPOSAL_DESCRIPTION);
@@ -140,6 +146,7 @@ describe("ProposalManager Unit Tests", function () {
             await queueTx.wait(1);
             await moveBlocks(1);
             proposalState = await governor.state(proposalId);
+            expect(proposalState).to.eq(5);
             console.log(`[queued] Proposal id: ${proposalId} in state ${proposalState}`);
 
             console.log("Executing...");
