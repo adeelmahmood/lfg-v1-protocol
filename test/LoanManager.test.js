@@ -49,10 +49,10 @@ describe("ProposalManager Unit Tests", function () {
         user = accounts[1];
         await deployments.fixture("all");
 
-        managerContract = await ethers.getContract("ProposalManager");
+        managerContract = await ethers.getContract("LoanManager");
         manager = managerContract.connect(deployer);
 
-        governorContract = await ethers.getContract("ProposalsGovernor");
+        governorContract = await ethers.getContract("LoanGovernor");
         governor = governorContract.connect(deployer);
 
         tokenHandlerContract = await ethers.getContract("GovTokenHandler");
@@ -67,26 +67,27 @@ describe("ProposalManager Unit Tests", function () {
 
     describe("all tests", function () {
         it("can only be run through governance", async function () {
-            await expect(manager.addProposal(1, "test")).to.be.revertedWith(
-                "Ownable: caller is not the owner"
-            );
+            await expect(
+                manager.issueLoan(deployer.address, "0x6B175474E89094C44Da98b954EedeAC495271d0F", 0)
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         });
 
         it("proposes, votes, queues, and then executes", async function () {
             const governance = networkConfig[chainId].governance;
 
-            const functionName = "addProposal";
-            const id = 1;
-            const desc = "test";
-            const PROPOSAL_DESCRIPTION = `Proposal ${id}`;
+            const functionName = "issueLoan";
+            const PROPOSAL_DESCRIPTION = `Issue Loan`;
 
             let balance = await token.balanceOf(deployer.address);
             console.log(`[start] gov tokens supply = ${balance / 10 ** 18}`);
 
-            const encodedFunctionCall = manager.interface.encodeFunctionData(functionName, [
-                id,
-                desc,
-            ]);
+            const args = [
+                deployer.address,
+                "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                hre.ethers.utils.parseEther("100"),
+            ];
+
+            const encodedFunctionCall = manager.interface.encodeFunctionData(functionName, args);
 
             // propose
             const proposeTx = await governor.propose(
@@ -106,6 +107,13 @@ describe("ProposalManager Unit Tests", function () {
             // vote
             const voteTx = await governor.castVoteWithReason(proposalId, 1, "i like this proposal");
             await voteTx.wait(1);
+
+            console.log(
+                `ForVotes before moving blocks: ${(
+                    await governor.proposalVotes(proposalId)
+                ).forVotes.toString()}`
+            );
+
             proposalState = await governor.state(proposalId);
             console.log(`[vote casted] Proposal id: ${proposalId} in state ${proposalState}`);
             expect(proposalState).to.eq(1);

@@ -1,54 +1,54 @@
 const { ethers, network } = require("hardhat");
 const fs = require("fs");
-const { SignerWithAddress } = require("@nomiclabs/hardhat-ethers/signers");
 
 const UI_FOLDER = process.env.LFG_UI_FOLDER;
 
+const abis = [
+    "LendPool",
+    "LendPoolCore",
+    "SwapRouter",
+    "GovToken",
+    "GovTokenHandler",
+    "LoanTimeLock",
+    "LoanGovernor",
+    "LoanManager",
+];
+
 const FRONT_END_ADDRS_FILE = UI_FOLDER + "/contract.json";
-const FRONT_END_LENDPOOL_ABI_FILE = UI_FOLDER + "/lendingpool.json";
-const FRONT_END_LENDPOOLCORE_ABI_FILE = UI_FOLDER + "/lendingpoolcore.json";
-const FRONT_END_SWAPROUTER_ABI_FILE = UI_FOLDER + "/swaprouter.json";
 
 module.exports = async function () {
-    if (process.env.UPDATE_FRONT_END === "true") {
-        await updateContractAddress();
-        await updateAbi();
+    if (process.env.UPDATE_FRONT_END == "true") {
+        for (let i = 0; i < abis.length; i++) {
+            console.log("Updating front end for " + abis[i]);
+            await updateAbi(abis[i]);
+            await updateContractAddress(abis[i]);
+        }
     }
 };
 
-async function updateAbi() {
-    const lendingpool = await ethers.getContract("LendPool");
+async function updateAbi(abi) {
+    const contract = await ethers.getContract(abi);
     fs.writeFileSync(
-        FRONT_END_LENDPOOL_ABI_FILE,
-        lendingpool.interface.format(ethers.utils.FormatTypes.json)
-    );
-
-    const lendingpoolCore = await ethers.getContract("LendPoolCore");
-    fs.writeFileSync(
-        FRONT_END_LENDPOOLCORE_ABI_FILE,
-        lendingpoolCore.interface.format(ethers.utils.FormatTypes.json)
-    );
-
-    const swapRouter = await ethers.getContract("SwapRouter");
-    fs.writeFileSync(
-        FRONT_END_SWAPROUTER_ABI_FILE,
-        swapRouter.interface.format(ethers.utils.FormatTypes.json)
+        UI_FOLDER + "/" + abi + ".json",
+        contract.interface.format(ethers.utils.FormatTypes.json)
     );
 }
 
-async function updateContractAddress() {
-    const lendingPool = await ethers.getContract("LendPool");
-    const lendingPoolCore = await ethers.getContract("LendPoolCore");
-    const swapRouter = await ethers.getContract("SwapRouter");
+async function updateContractAddress(abi) {
+    const contract = await ethers.getContract(abi);
 
     const chainId = network.config.chainId.toString();
+
+    if (!fs.existsSync(FRONT_END_ADDRS_FILE)) {
+        fs.writeFileSync(FRONT_END_ADDRS_FILE, JSON.stringify({}));
+    }
+
     const contractAddress = JSON.parse(fs.readFileSync(FRONT_END_ADDRS_FILE));
 
-    contractAddress[chainId] = {
-        LendingPool: [lendingPool.address],
-        LendingPoolCore: [lendingPoolCore.address],
-        SwapRouter: [swapRouter.address],
-    };
+    if (!contractAddress[chainId]) {
+        contractAddress[chainId] = {};
+    }
+    contractAddress[chainId][abi] = contract.address;
 
     fs.writeFileSync(FRONT_END_ADDRS_FILE, JSON.stringify(contractAddress));
 }

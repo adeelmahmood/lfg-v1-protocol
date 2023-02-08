@@ -8,8 +8,8 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
     const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
-    const timelock = await ethers.getContract("ProposalsTimeLock");
-    const governor = await ethers.getContract("ProposalsGovernor");
+    const timelock = await ethers.getContract("LoanTimeLock");
+    const governor = await ethers.getContract("LoanGovernor");
 
     log("Setting up roles for timelock");
     const proposerRole = await timelock.PROPOSER_ROLE();

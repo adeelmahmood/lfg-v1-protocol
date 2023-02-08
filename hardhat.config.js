@@ -63,6 +63,8 @@ module.exports = {
             url: GOERLI_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
+            gasPrice: 20000000000,
+            gas: 6000000,
         },
         localhost: {
             url: "http://127.0.0.1:8545/",

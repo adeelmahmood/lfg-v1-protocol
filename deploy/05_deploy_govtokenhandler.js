@@ -27,7 +27,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     log("GovTokenHandler contract deployed successfully");
 
-    await token.transferOwnership(handler.address);
+    // await token.transferOwnership(handler.address);
     log("GovToken ownership tranferred to GovTokenHandler");
 };
 

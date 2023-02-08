@@ -8,9 +8,18 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
-    const args = [];
+    const govToken = await ethers.getContract("GovToken");
+    const timelock = await ethers.getContract("LoanTimeLock");
 
-    const manager = await deploy("ProposalManager", {
+    const args = [
+        govToken.address,
+        timelock.address,
+        networkConfig[chainId].governance.QUORUM_PERC,
+        networkConfig[chainId].governance.VOTING_PERIOD,
+        networkConfig[chainId].governance.VOTING_DELAY,
+    ];
+
+    const governor = await deploy("LoanGovernor", {
         from: deployer,
         args: args,
         log: true,
@@ -19,15 +28,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(manager.address, args);
+        await verify(governor.address, args);
     }
-    log("ProposalManager contract deployed successfully");
-
-    log("Transferring ownership to Timelock");
-    const managerContract = await ethers.getContract("ProposalManager");
-    const timelock = await ethers.getContract("ProposalsTimeLock");
-    const transferTx = await managerContract.transferOwnership(timelock.address);
-    await transferTx.wait(BLOCK_CONFIRMATIONS);
+    log("L contract deployed successfully");
 };
 
 module.exports.tags = ["all", "governance", "governor"];

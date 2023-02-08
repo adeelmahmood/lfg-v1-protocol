@@ -8,18 +8,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
-    const govToken = await ethers.getContract("GovToken");
-    const timelock = await ethers.getContract("ProposalsTimeLock");
+    const args = [networkConfig[chainId].governance.MIN_DELAY, [], [], deployer];
 
-    const args = [
-        govToken.address,
-        timelock.address,
-        networkConfig[chainId].governance.QUORUM_PERC,
-        networkConfig[chainId].governance.VOTING_PERIOD,
-        networkConfig[chainId].governance.VOTING_DELAY,
-    ];
-
-    const governor = await deploy("ProposalsGovernor", {
+    const timelock = await deploy("LoanTimeLock", {
         from: deployer,
         args: args,
         log: true,
@@ -28,9 +19,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
         log("Verifying...");
-        await verify(governor.address, args);
+        await verify(timelock.address, args, "contracts/governance/LoanTimeLock.sol:LoanTimeLock");
     }
-    log("ProposalsGovernor contract deployed successfully");
+    log("LoanTimeLock contract deployed successfully");
 };
 
-module.exports.tags = ["all", "governance", "governor"];
+module.exports.tags = ["all", "governance", "timelock"];
