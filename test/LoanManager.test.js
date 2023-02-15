@@ -106,7 +106,7 @@ describe("ProposalManager Unit Tests", function () {
 
             // vote
             const voteTx = await governor.castVoteWithReason(proposalId, 1, "i like this proposal");
-            await voteTx.wait(1);
+            const voteReceipt = await voteTx.wait(1);
 
             console.log(
                 `ForVotes before moving blocks: ${(
@@ -151,11 +151,21 @@ describe("ProposalManager Unit Tests", function () {
                 [encodedFunctionCall],
                 descriptionHash
             );
-            await queueTx.wait(1);
+            const qreceipt = await queueTx.wait(1);
+            console.log("qreceipt");
+            console.log(qreceipt);
             await moveBlocks(1);
             proposalState = await governor.state(proposalId);
             expect(proposalState).to.eq(5);
             console.log(`[queued] Proposal id: ${proposalId} in state ${proposalState}`);
+            const eta = await governor.proposalEta(proposalId);
+            console.log(
+                `eta ${eta} - in date ${new Date(
+                    eta * 1000
+                )} - while today is ${new Date()} - in terms of seconds ${new Date(
+                    Date.now() / 1000
+                )}`
+            );
 
             console.log("Executing...");
             const exTx = await governor.execute(

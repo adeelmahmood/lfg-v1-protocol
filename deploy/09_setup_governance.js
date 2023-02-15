@@ -16,14 +16,28 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const executorRole = await timelock.EXECUTOR_ROLE();
     const adminRole = await timelock.TIMELOCK_ADMIN_ROLE();
 
-    const proposerTx = await timelock.grantRole(proposerRole, governor.address);
-    await proposerTx.wait(BLOCK_CONFIRMATIONS);
+    const isAdmin = await timelock.hasRole(adminRole, deployer);
+    if (isAdmin) {
+        const isProposersRoleSet = await timelock.hasRole(proposerRole, governor.address);
+        if (!isProposersRoleSet) {
+            log("setting up proposer role");
+            const proposerTx = await timelock.grantRole(proposerRole, governor.address);
+            await proposerTx.wait(BLOCK_CONFIRMATIONS);
+            log("done");
+        }
 
-    const executorTx = await timelock.grantRole(executorRole, ADDRESS_ZERO);
-    await executorTx.wait(BLOCK_CONFIRMATIONS);
+        const isExecsRoleSet = await timelock.hasRole(executorRole, ADDRESS_ZERO);
+        if (!isExecsRoleSet) {
+            log("setting up executor role");
+            const executorTx = await timelock.grantRole(executorRole, ADDRESS_ZERO);
+            await executorTx.wait(BLOCK_CONFIRMATIONS);
+            log("done");
+        }
 
-    const revokeTx = await timelock.revokeRole(adminRole, deployer);
-    await revokeTx.wait(BLOCK_CONFIRMATIONS);
+        log("revoking admin role");
+        const revokeTx = await timelock.revokeRole(adminRole, deployer);
+        await revokeTx.wait(BLOCK_CONFIRMATIONS);
+    }
 
     log("Governance setup");
 };

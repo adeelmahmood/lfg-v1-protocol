@@ -20,7 +20,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 100,
                     },
                 },
             },
@@ -29,7 +29,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 100,
                     },
                 },
             },
@@ -38,7 +38,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 100,
                     },
                 },
             },
@@ -51,7 +51,7 @@ module.exports = {
             blockConfirmations: 1,
             forking: {
                 url: MAINNET_URL,
-                blockNumber: 16198023,
+                blockNumber: 16600542, //16198023,
             },
         },
         rinkeby: {
@@ -67,8 +67,10 @@ module.exports = {
             gas: 6000000,
         },
         localhost: {
-            url: "http://127.0.0.1:8545/",
+            url: "http://0.0.0.0:8545",
             chainId: 31337,
+            gasPrice: 20000000000,
+            gas: 6000000,
         },
     },
     namedAccounts: {

@@ -8,7 +8,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const chainId = network.config.chainId;
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
-    const args = [networkConfig[chainId].governance.MIN_DELAY, [], [], deployer];
+    const args = [networkConfig[chainId].governance.EXECUTE_DELAY, [], [], deployer];
 
     const timelock = await deploy("LoanTimeLock", {
         from: deployer,

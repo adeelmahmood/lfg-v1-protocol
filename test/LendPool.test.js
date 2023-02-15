@@ -91,7 +91,16 @@ describe("LendingPool Unit Tests", function () {
 
             // deposit weth into contract
             await WETH.approve(lendingPool.address, amount);
-            await lendingPool.deposit(WETH.address, amount);
+            const tx = await lendingPool.deposit(WETH.address, amount);
+            const receipt = await tx.wait(1);
+            // console.log(receipt);
+            // console.log("going deeper");
+            // receipt.events?.map(async (e) => {
+            //     if (e.getTransactionReceipt) {
+            //         const el = await e.getTransactionReceipt();
+            //         console.log(el);
+            //     }
+            // });
 
             // check govToken balance
             const govTokenBalance = await govTokenContract.balanceOf(deployer.address);
