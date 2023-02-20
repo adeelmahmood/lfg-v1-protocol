@@ -39,6 +39,18 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         await revokeTx.wait(BLOCK_CONFIRMATIONS);
     }
 
+    log("Transferring LendPool ownership to Timelock");
+    const lendPool = await ethers.getContract("LendPool");
+    const owner = await lendPool.owner();
+    if (owner != timelock.address) {
+        log("transferring LendPool ownership from %s to %s", owner, timelock.address);
+        const transferTx = await lendPool.transferOwnership(timelock.address);
+        await transferTx.wait(BLOCK_CONFIRMATIONS);
+        log("Timelock took ownership of LendPool");
+    } else {
+        log("Timelock ownership of LendPool already set");
+    }
+
     log("Governance setup");
 };
 

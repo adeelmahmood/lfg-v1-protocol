@@ -7,6 +7,7 @@ library DataTypes {
         uint256 totalDebt;
         uint256 availableToBorrow;
         uint256 loanToValue;
+        uint256 healthFactor;
     }
 
     struct TokenMarketData {

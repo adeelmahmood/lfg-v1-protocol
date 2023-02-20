@@ -8,12 +8,15 @@ import "./libraries/TokenLib.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./external/aave/LendingPoolAddressesProvider.sol";
 import "./external/aave/LendingPool.sol";
 import "./external/aave/ProtocolDataProvider.sol";
 
-contract LendPoolCore {
+import "./governance/GovTokenHandler.sol";
+
+contract LendPoolCore is Ownable {
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
     using TokenLib for ERC20;
@@ -24,7 +27,21 @@ contract LendPoolCore {
         aave = _aave;
     }
 
-    function deposit(ERC20 _token, uint256 _amount) external {
+    function borrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {
+        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
+        LendingPool pool = LendingPool(provider.getLendingPool());
+
+        uint256 variableRate = 2;
+        uint16 referral = 0;
+
+        // request loan
+        pool.borrow(address(_token), _amount, variableRate, referral, address(this));
+
+        // transfer borrowed tokens to borrower
+        _token.safeTransfer(_to, _amount);
+    }
+
+    function deposit(ERC20 _token, uint256 _amount) external onlyOwner {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
@@ -35,7 +52,11 @@ contract LendPoolCore {
         pool.deposit(address(_token), _amount, address(this), referral);
     }
 
-    function withdraw(ERC20 _token, uint256 _amount, address _to) external returns (uint256) {
+    function withdraw(
+        ERC20 _token,
+        uint256 _amount,
+        address _to
+    ) external onlyOwner returns (uint256) {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
@@ -61,16 +82,16 @@ contract LendPoolCore {
             uint256 totalCollateral,
             uint256 totalDebt,
             uint256 availableToBorrow,
-            uint256 loanToValue
+            uint256 loanToValue,
+            uint256 healthFactor
         )
     {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());
 
         // get assets info from market pool
-        (totalCollateral, totalDebt, availableToBorrow, , loanToValue, ) = pool.getUserAccountData(
-            address(this)
-        );
+        (totalCollateral, totalDebt, availableToBorrow, , loanToValue, healthFactor) = pool
+            .getUserAccountData(address(this));
     }
 
     function getActiveTokensFromMarket() external view returns (address[] memory tokens) {

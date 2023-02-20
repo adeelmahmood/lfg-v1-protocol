@@ -11,7 +11,7 @@ const abis = [
     "GovTokenHandler",
     "LoanTimeLock",
     "LoanGovernor",
-    "LoanManager",
+    // "LoanManager",
 ];
 
 const FRONT_END_ADDRS_FILE = UI_FOLDER + "/contract.json";

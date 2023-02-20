@@ -19,6 +19,11 @@ contract EthPriceSupplyStrategy is ISupplyStrategy {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         IPriceOracleGetter priceOracle = IPriceOracleGetter(provider.getPriceOracle());
 
+        //   uint256 amountInETH =
+        //   IPriceOracleGetter(oracle).getAssetPrice(vars.asset).mul(vars.amount).div(
+        //     10**reserve.configuration.getDecimals()
+        //   );
+
         uint256 price = priceOracle.getAssetPrice(address(_token));
         uint256 calcVotes = (price * _amount) / 10 ** 18;
 

@@ -10,7 +10,8 @@ const {
     balance,
     time,
 } = require("@openzeppelin/test-helpers");
-const { parseUnits, formatUnits } = require("ethers/lib/utils");
+const { moveBlocks } = require("../utils/move-blocks");
+const { moveTime } = require("../utils/move-time");
 
 const ercAbi = [
     // Read-Only Functions
@@ -27,8 +28,16 @@ describe("LendingPool Unit Tests", function () {
     let govTokenContract, govToken;
     let govTokenHandler;
     let swapRouterContract, swapRouter;
+    let governor, governorContract;
     const chainId = network.config.chainId;
     let WETH, DAI, USDT;
+
+    const depositWeth = async (user, amount) => {
+        const deposit = await WETH.connect(user).deposit({ value: amount });
+        await deposit.wait();
+        await WETH.connect(user).approve(lendingPool.address, amount);
+        await lendingPool.connect(user).deposit(WETH.address, amount);
+    };
 
     beforeEach(async function () {
         accounts = await ethers.getSigners();
@@ -50,6 +59,9 @@ describe("LendingPool Unit Tests", function () {
 
         govTokenHandler = await ethers.getContract("GovTokenHandler");
 
+        governorContract = await ethers.getContract("LoanGovernor");
+        governor = governorContract.connect(deployer);
+
         const contracts = networkConfig[chainId].contracts;
 
         WETH = new ethers.Contract(contracts.WETH, ercAbi, deployer);
@@ -57,7 +69,7 @@ describe("LendingPool Unit Tests", function () {
         USDT = new ethers.Contract(contracts.USDT, ercAbi, deployer);
     });
 
-    describe("init", function () {
+    describe("lending tests", function () {
         it("requires sufficient amount for deposit", async function () {
             const amount = hre.ethers.utils.parseEther("10");
 
@@ -68,7 +80,7 @@ describe("LendingPool Unit Tests", function () {
         });
 
         it("emits deposit event", async function () {
-            const amount = hre.ethers.utils.parseEther("1");
+            const amount = hre.ethers.utils.parseEther("10");
 
             // get some weth
             const deposit = await WETH.deposit({ value: amount });
@@ -92,15 +104,7 @@ describe("LendingPool Unit Tests", function () {
             // deposit weth into contract
             await WETH.approve(lendingPool.address, amount);
             const tx = await lendingPool.deposit(WETH.address, amount);
-            const receipt = await tx.wait(1);
-            // console.log(receipt);
-            // console.log("going deeper");
-            // receipt.events?.map(async (e) => {
-            //     if (e.getTransactionReceipt) {
-            //         const el = await e.getTransactionReceipt();
-            //         console.log(el);
-            //     }
-            // });
+            await tx.wait(1);
 
             // check govToken balance
             const govTokenBalance = await govTokenContract.balanceOf(deployer.address);
@@ -212,13 +216,6 @@ describe("LendingPool Unit Tests", function () {
         it("can deposit WETH from multiple users and get updated token balances", async function () {
             const amount = hre.ethers.utils.parseEther("1");
 
-            const depositWeth = async (user, amount) => {
-                const deposit = await WETH.connect(user).deposit({ value: amount });
-                await deposit.wait();
-                await WETH.connect(user).approve(lendingPool.address, amount);
-                await lendingPool.connect(user).deposit(WETH.address, amount);
-            };
-
             // deposit WETH from multiple users
             await depositWeth(deployer, amount);
             const balances = await lendingPool.getDeposits(deployer.address);
@@ -287,6 +284,135 @@ describe("LendingPool Unit Tests", function () {
             // check govToken balance to be zero
             const govTokenBalance = await govToken.balanceOf(deployer.address);
             expect(govTokenBalance).to.eq(0);
+        });
+    });
+
+    describe("governance tests", function () {
+        const amount = hre.ethers.utils.parseEther("1000");
+        const borrowAmount = amount.div(10);
+
+        this.beforeEach(async function () {
+            await depositWeth(deployer, amount);
+            await delegate(deployer);
+        });
+
+        const delegate = async (delegateTo) => {
+            // delegate gov tokens
+            const delegateTx = await govToken.delegate(delegateTo.address);
+            await delegateTx.wait(1);
+        };
+
+        it("can only run borrow through governance", async function () {
+            await expect(lendingPool.borrow(WETH.address, 0, deployer.address)).to.be.revertedWith(
+                "Ownable: caller is not the owner"
+            );
+        });
+
+        it("proposes, votes, queues, and then executes the borrow function", async function () {
+            const governance = networkConfig[chainId].governance;
+
+            const functionName = "borrow";
+            const PROPOSAL_DESCRIPTION = `Borrow Propopsal`;
+
+            let balance = await govToken.balanceOf(deployer.address);
+            console.log(`[start] gov tokens supply = ${balance / 10 ** 18}`);
+
+            const args = [WETH.address, borrowAmount, user.address];
+
+            const encodedFunctionCall = lendingPool.interface.encodeFunctionData(
+                functionName,
+                args
+            );
+
+            // propose
+            const proposeTx = await governor.propose(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                PROPOSAL_DESCRIPTION
+            );
+            const proposeReciept = await proposeTx.wait(1);
+
+            const proposalId = proposeReciept.events[0].args.proposalId;
+            let proposalState = await governor.state(proposalId);
+            console.log(`[create] Proposal id: ${proposalId} in state ${proposalState}`);
+            expect(proposalState).to.eq(0);
+            await moveBlocks(governance.VOTING_DELAY + 1);
+
+            // vote
+            const voteTx = await governor.castVoteWithReason(
+                proposalId,
+                1,
+                "I like this proposal!"
+            );
+            await voteTx.wait(1);
+
+            console.log(
+                `ForVotes before moving blocks: ${(
+                    await governor.proposalVotes(proposalId)
+                ).forVotes.toString()}`
+            );
+
+            proposalState = await governor.state(proposalId);
+            console.log(`[vote casted] Proposal id: ${proposalId} in state ${proposalState}`);
+            expect(proposalState).to.eq(1);
+            await moveBlocks(governance.VOTING_PERIOD + 10);
+
+            const hasVoted = await governor.hasVoted(proposalId, deployer.address);
+            expect(hasVoted).to.eq(true);
+            console.log(`deployer has voted: ${hasVoted}`);
+            console.log(
+                `AgainstVotes: ${(
+                    await governor.proposalVotes(proposalId)
+                ).againstVotes.toString()}`
+            );
+            console.log(
+                `ForVotes: ${(await governor.proposalVotes(proposalId)).forVotes.toString()}`
+            );
+            console.log(
+                `AbstainVotes: ${(
+                    await governor.proposalVotes(proposalId)
+                ).abstainVotes.toString()}`
+            );
+            console.log(
+                `Quorum: ${await governor.quorum(
+                    proposeReciept.events[0].args.startBlock.toString()
+                )}`
+            );
+            balance = await govToken.balanceOf(deployer.address);
+            console.log(`[after casting vote] gov tokens supply = ${balance / 10 ** 18}`);
+
+            // queue
+            const descriptionHash = ethers.utils.id(PROPOSAL_DESCRIPTION);
+            const queueTx = await governor.queue(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                descriptionHash
+            );
+            await queueTx.wait(1);
+            await moveBlocks(1);
+            proposalState = await governor.state(proposalId);
+            expect(proposalState).to.eq(5);
+            console.log(`[queued] Proposal id: ${proposalId} in state ${proposalState}`);
+
+            console.log("Executing...");
+            const exTx = await governor.execute(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                descriptionHash
+            );
+            await exTx.wait(1);
+
+            const borrowedBalance = await WETH.balanceOf(user.address);
+            expect(borrowedBalance).to.be.eq(borrowAmount);
+
+            const recordedBorrowBalance = await lendingPool.borrowBalance(
+                user.address,
+                WETH.address
+            );
+            expect(recordedBorrowBalance).to.be.eq(borrowAmount);
         });
     });
 });

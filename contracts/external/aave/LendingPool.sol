@@ -31,6 +31,21 @@ interface LendingPool {
     function getReservesList() external view returns (address[] memory);
 
     function getReserveData(address asset) external view returns (ReserveData memory);
+
+    function borrow(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        uint16 referralCode,
+        address onBehalfOf
+    ) external;
+
+    function repay(
+        address asset,
+        uint256 amount,
+        uint256 rateMode,
+        address onBehalfOf
+    ) external returns (uint256);
 }
 
 struct ReserveData {
@@ -79,6 +94,18 @@ interface IaToken {
     function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256);
 
     function redeem(uint256 _amount) external;
+}
+
+interface IVariableDebtToken {
+    function approveDelegation(address delegatee, uint256 amount) external;
+
+    function borrowAllowance(address fromUser, address toUser) external view returns (uint256);
+}
+
+interface IStableDebtToken {
+    function approveDelegation(address delegatee, uint256 amount) external;
+
+    function borrowAllowance(address fromUser, address toUser) external view returns (uint256);
 }
 
 interface IPriceOracleGetter {

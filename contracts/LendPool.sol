@@ -3,9 +3,9 @@ pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
 import "./LendPoolCore.sol";
-import "./governance/GovTokenHandler.sol";
 import "./DataTypes.sol";
 import "./libraries/TokenLib.sol";
+import "./governance/GovTokenHandler.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -26,17 +26,21 @@ contract LendPool is Ownable, ReentrancyGuard {
     mapping(address => uint256) private tokenBalances;
     // user address => token address => amount
     mapping(address => mapping(address => uint256)) private userBalances;
+    mapping(address => mapping(address => uint256)) private borrowBalances;
     // deposited tokens array
     DataTypes.TokenMetadata[] public suppliedTokens;
 
     /* Events */
     event DepositMade(address indexed user, address indexed token, uint256 amount);
     event WithdrawlMade(address indexed user, address indexed token, uint256 amount);
+    event BorrowMade(address indexed user, address indexed token, uint256 amount);
 
     /* Errors */
     error LendingPool__InsufficientAmountForDeposit(address user, address token, uint256 balance);
     error LendingPool__WithdrawAmountMoreThanBalance();
     error LendingPool__WithdrawRequestedWithNoBalance();
+    error LendingPool__BorrowRequestForMoreThanCollateral();
+    error LendingPool__BorrowRequestForMoreThanAvailable();
 
     constructor(address _core, address _govTokenHandler) {
         core = LendPoolCore(_core);
@@ -44,6 +48,49 @@ contract LendPool is Ownable, ReentrancyGuard {
     }
 
     receive() external payable {}
+
+    function borrow(ERC20 _token, uint256 _amount, address _to) external nonReentrant onlyOwner {
+        address _user = msg.sender;
+        address _tokenAddress = address(_token);
+
+        validateBorrow(_to, _token, _amount);
+
+        updateStateForBorrow(_to, _token, _amount);
+
+        core.borrow(_token, _amount, _to);
+
+        // emit borrow event
+        emit BorrowMade(_user, _tokenAddress, _amount);
+    }
+
+    function validateBorrow(
+        address _user,
+        ERC20 _token,
+        uint256 _amount
+    ) internal view returns (uint256) {
+        (
+            uint256 totalCollateral,
+            ,
+            uint256 availableToBorrow,
+            uint256 loanToValue,
+            uint256 healthFactor
+        ) = core.getCurrentLiquidity();
+
+        if (totalCollateral < _amount) {
+            revert LendingPool__BorrowRequestForMoreThanCollateral();
+        }
+
+        if (availableToBorrow < _amount) {
+            revert LendingPool__BorrowRequestForMoreThanAvailable();
+        }
+    }
+
+    function updateStateForBorrow(address _user, ERC20 _token, uint256 _amount) internal {
+        address _tokenAddress = address(_token);
+
+        // update borrow balances
+        borrowBalances[_user][_tokenAddress] += _amount;
+    }
 
     function deposit(ERC20 _token, uint256 _amount) external nonReentrant {
         address _user = msg.sender;
@@ -161,8 +208,13 @@ contract LendPool is Ownable, ReentrancyGuard {
         DataTypes.PoolLiquidity memory stats;
 
         // get pool stats from core
-        (stats.totalCollateral, stats.totalDebt, stats.availableToBorrow, stats.loanToValue) = core
-            .getCurrentLiquidity();
+        (
+            stats.totalCollateral,
+            stats.totalDebt,
+            stats.availableToBorrow,
+            stats.loanToValue,
+            stats.healthFactor
+        ) = core.getCurrentLiquidity();
 
         return stats;
     }
@@ -241,6 +293,10 @@ contract LendPool is Ownable, ReentrancyGuard {
 
     function tokenBalance(address _token) public view returns (uint256) {
         return tokenBalances[_token];
+    }
+
+    function borrowBalance(address _user, address _token) public view returns (uint256) {
+        return borrowBalances[_user][_token];
     }
 
     function getChainId() internal view returns (uint) {

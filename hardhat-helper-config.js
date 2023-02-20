@@ -39,7 +39,7 @@ const networkConfig = {
             AAVE_LP_PROVIDER: "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
         },
         governance: {
-            EXECUTE_DELAY: 3600, // 3600 = 1 hour - after vote passes, there is one hour delay
+            EXECUTE_DELAY: 0, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
             VOTING_PERIOD: 10, // blocks for how long voting stays open
             VOTING_DELAY: 0, // blocks before proposal becomes active

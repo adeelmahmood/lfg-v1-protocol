@@ -5,6 +5,17 @@ pragma experimental ABIEncoderV2;
 import "./LendingPoolAddressesProvider.sol";
 
 interface ProtocolDataProvider {
+    function getReserveTokensAddresses(
+        address asset
+    )
+        external
+        view
+        returns (
+            address aTokenAddress,
+            address stableDebtTokenAddress,
+            address variableDebtTokenAddress
+        );
+
     function getUserReserveData(
         address asset,
         address user
