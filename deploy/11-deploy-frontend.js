@@ -1,5 +1,6 @@
 const { ethers, network } = require("hardhat");
 const fs = require("fs");
+const { networkConfig } = require("../hardhat-helper-config");
 
 const UI_FOLDER = process.env.LFG_UI_FOLDER;
 
@@ -11,7 +12,6 @@ const abis = [
     "GovTokenHandler",
     "LoanTimeLock",
     "LoanGovernor",
-    // "LoanManager",
 ];
 
 const FRONT_END_ADDRS_FILE = UI_FOLDER + "/contract.json";
@@ -23,6 +23,11 @@ module.exports = async function () {
             await updateAbi(abis[i]);
             await updateContractAddress(abis[i]);
         }
+
+        const chainId = network.config.chainId.toString();
+        // DAI address
+        const daiAddress = networkConfig[chainId].contracts.DAI;
+        await addAddressEntry("DAI", daiAddress);
     }
 };
 
@@ -37,6 +42,10 @@ async function updateAbi(abi) {
 async function updateContractAddress(abi) {
     const contract = await ethers.getContract(abi);
 
+    await addAddressEntry(abi, contract.address);
+}
+
+async function addAddressEntry(key, addr) {
     const chainId = network.config.chainId.toString();
 
     if (!fs.existsSync(FRONT_END_ADDRS_FILE)) {
@@ -48,7 +57,7 @@ async function updateContractAddress(abi) {
     if (!contractAddress[chainId]) {
         contractAddress[chainId] = {};
     }
-    contractAddress[chainId][abi] = contract.address;
+    contractAddress[chainId][key] = addr;
 
     fs.writeFileSync(FRONT_END_ADDRS_FILE, JSON.stringify(contractAddress));
 }

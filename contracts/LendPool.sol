@@ -21,6 +21,7 @@ contract LendPool is Ownable, ReentrancyGuard {
 
     LendPoolCore core;
     GovTokenHandler govTokenHandler;
+    address borrowToken;
 
     // token address => amount
     mapping(address => uint256) private tokenBalances;
@@ -34,6 +35,7 @@ contract LendPool is Ownable, ReentrancyGuard {
     event DepositMade(address indexed user, address indexed token, uint256 amount);
     event WithdrawlMade(address indexed user, address indexed token, uint256 amount);
     event BorrowMade(address indexed user, address indexed token, uint256 amount);
+    event FakeEvent();
 
     /* Errors */
     error LendingPool__InsufficientAmountForDeposit(address user, address token, uint256 balance);
@@ -42,9 +44,10 @@ contract LendPool is Ownable, ReentrancyGuard {
     error LendingPool__BorrowRequestForMoreThanCollateral();
     error LendingPool__BorrowRequestForMoreThanAvailable();
 
-    constructor(address _core, address _govTokenHandler) {
+    constructor(address _core, address _govTokenHandler, address _borrowToken) {
         core = LendPoolCore(_core);
         govTokenHandler = GovTokenHandler(_govTokenHandler);
+        borrowToken = _borrowToken;
     }
 
     receive() external payable {}
@@ -217,6 +220,14 @@ contract LendPool is Ownable, ReentrancyGuard {
         ) = core.getCurrentLiquidity();
 
         return stats;
+    }
+
+    function getBorrowToken()
+        external
+        view
+        returns (DataTypes.TokenMarketData memory borrowTokenMD)
+    {
+        borrowTokenMD = core.getTokenMarketData(borrowToken);
     }
 
     function getAvailableTokens(
