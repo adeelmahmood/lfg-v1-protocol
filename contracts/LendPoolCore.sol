@@ -23,6 +23,8 @@ contract LendPoolCore is Ownable {
 
     address public aave;
 
+    event FakeEventForDeployment();
+
     constructor(address _aave) {
         aave = _aave;
     }

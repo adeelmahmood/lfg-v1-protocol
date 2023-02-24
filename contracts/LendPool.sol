@@ -35,7 +35,7 @@ contract LendPool is Ownable, ReentrancyGuard {
     event DepositMade(address indexed user, address indexed token, uint256 amount);
     event WithdrawlMade(address indexed user, address indexed token, uint256 amount);
     event BorrowMade(address indexed user, address indexed token, uint256 amount);
-    event FakeEvent();
+    event FakeEventForDeployment();
 
     /* Errors */
     error LendingPool__InsufficientAmountForDeposit(address user, address token, uint256 balance);

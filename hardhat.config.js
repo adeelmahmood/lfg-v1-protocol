@@ -59,11 +59,18 @@ module.exports = {
             accounts: [PRIVATE_KEY],
             chainId: 4,
         },
+        mumbai: {
+            url: GOERLI_URL,
+            accounts: [PRIVATE_KEY],
+            chainId: 5,
+            gasPrice: 50000000000,
+            gas: 6000000,
+        },
         goerli: {
             url: GOERLI_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
-            gasPrice: 20000000000,
+            gasPrice: 70000000000,
             gas: 6000000,
         },
         localhost: {
