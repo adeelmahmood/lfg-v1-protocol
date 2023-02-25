@@ -20,7 +20,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         waitConfirmations: BLOCK_CONFIRMATIONS,
     });
 
-    if (!developmentChains.includes(network.name) && process.env.ETHER_SCAN_KEY) {
+    if (!developmentChains.includes(network.name)) {
         log("Verifying...");
         await verify(handler.address, args);
     }

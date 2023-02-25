@@ -22,7 +22,22 @@ const networkConfig = {
         governance: {
             EXECUTE_DELAY: 600, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
-            VOTING_PERIOD: 25, // blocks for how long voting stays open
+            VOTING_PERIOD: 25, // blocks for how long voting stays open ~12s per block
+            VOTING_DELAY: 0, // blocks before proposal becomes active
+        },
+    },
+    80001: {
+        name: "mumbai",
+        contracts: {
+            WETH: "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889", //actually its WMATIC
+            DAI: "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+            UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+            AAVE_LP_PROVIDER: "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+        },
+        governance: {
+            EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
+            QUORUM_PERC: 4, // need 4% of voters to pass the vote
+            VOTING_PERIOD: 150, // blocks for how long voting stays open ~2s per block
             VOTING_DELAY: 0, // blocks before proposal becomes active
         },
     },
@@ -41,7 +56,7 @@ const networkConfig = {
         governance: {
             EXECUTE_DELAY: 0, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
-            VOTING_PERIOD: 10, // blocks for how long voting stays open
+            VOTING_PERIOD: 10, // blocks for how long voting stays open ~12s per block
             VOTING_DELAY: 0, // blocks before proposal becomes active
         },
     },

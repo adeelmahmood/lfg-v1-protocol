@@ -6,8 +6,10 @@ require("solidity-coverage");
 require("dotenv").config();
 
 const RINKEBY_URL = process.env.RINKEBY_URL || "https://eth-ropsten";
+const MUMBAI_URL = process.env.MUMBAI_URL || "https://eth-ropsten";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey";
-const ETHER_SCAN_KEY = process.env.ETHER_SCAN_KEY || "key";
+const ETHER_SCAN_MAINNET_KEY = process.env.ETHER_SCAN_MAINNET_KEY || "key";
+const ETHER_SCAN_POLYGON_KEY = process.env.ETHER_SCAN_POLYGON_KEY || "key";
 const COINMARKETCAP_KEY = process.env.COINMARKETCAP_KEY || "key";
 const GOERLI_URL = process.env.GOERLI_URL || "";
 const MAINNET_URL = process.env.MAINNET_URL || "";
@@ -60,21 +62,21 @@ module.exports = {
             chainId: 4,
         },
         mumbai: {
-            url: GOERLI_URL,
+            url: MUMBAI_URL,
             accounts: [PRIVATE_KEY],
-            chainId: 5,
-            gasPrice: 50000000000,
+            chainId: 80001,
+            gasPrice: 20000000000,
             gas: 6000000,
         },
         goerli: {
             url: GOERLI_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
-            gasPrice: 70000000000,
+            gasPrice: 20000000000,
             gas: 6000000,
         },
         localhost: {
-            url: "http://0.0.0.0:8545",
+            url: "http://127.0.0.1:8545",
             chainId: 31337,
             gasPrice: 20000000000,
             gas: 6000000,
@@ -89,7 +91,12 @@ module.exports = {
         },
     },
     etherscan: {
-        apiKey: ETHER_SCAN_KEY,
+        apiKey: {
+            mainnet: ETHER_SCAN_MAINNET_KEY,
+            goerli: ETHER_SCAN_MAINNET_KEY,
+            polygonMumbai: ETHER_SCAN_POLYGON_KEY,
+            polygon: ETHER_SCAN_POLYGON_KEY,
+        },
     },
     gasReporter: {
         enabled: false,

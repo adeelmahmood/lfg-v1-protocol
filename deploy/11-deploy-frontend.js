@@ -28,6 +28,9 @@ module.exports = async function () {
         // DAI address
         const daiAddress = networkConfig[chainId].contracts.DAI;
         await addAddressEntry("DAI", daiAddress);
+        // WETH address
+        const wethAddress = networkConfig[chainId].contracts.WETH;
+        await addAddressEntry("WETH", wethAddress);
     }
 };
 

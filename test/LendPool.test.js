@@ -12,6 +12,7 @@ const {
 } = require("@openzeppelin/test-helpers");
 const { moveBlocks } = require("../utils/move-blocks");
 const { moveTime } = require("../utils/move-time");
+const { parseEther, formatEther, formatUnits } = require("ethers/lib/utils");
 
 const ercAbi = [
     // Read-Only Functions
@@ -37,6 +38,12 @@ describe("LendingPool Unit Tests", function () {
         await deposit.wait();
         await WETH.connect(user).approve(lendingPool.address, amount);
         await lendingPool.connect(user).deposit(WETH.address, amount);
+    };
+
+    const delegate = async (delegateTo) => {
+        // delegate gov tokens
+        const delegateTx = await govToken.delegate(delegateTo.address);
+        await delegateTx.wait(1);
     };
 
     beforeEach(async function () {
@@ -296,12 +303,6 @@ describe("LendingPool Unit Tests", function () {
             await delegate(deployer);
         });
 
-        const delegate = async (delegateTo) => {
-            // delegate gov tokens
-            const delegateTx = await govToken.delegate(delegateTo.address);
-            await delegateTx.wait(1);
-        };
-
         it("can only run borrow through governance", async function () {
             await expect(lendingPool.borrow(WETH.address, 0, deployer.address)).to.be.revertedWith(
                 "Ownable: caller is not the owner"
@@ -415,4 +416,112 @@ describe("LendingPool Unit Tests", function () {
             expect(recordedBorrowBalance).to.be.eq(borrowAmount);
         });
     });
+
+    describe("lending scenarios", function () {
+        const days = 100;
+        const _moveTime = async (_days = days) => {
+            await moveTime(_days * 24 * 60 * 60, true);
+            await moveBlocks((_days * 24 * 60 * 60) / 12, 0, true);
+        };
+
+        it("one lender single deposit", async function () {
+            const amount = hre.ethers.utils.parseEther("1000");
+
+            await depositWeth(deployer, amount);
+
+            await _moveTime();
+
+            // now check compounded interest
+            showParameters(lendingPool);
+            const liquidity = await lendingPool.getLiquidity();
+            showNumbers(amount, liquidity);
+        });
+
+        it("two lenders same deposit", async function () {
+            const amount = hre.ethers.utils.parseEther("1000");
+
+            await depositWeth(deployer, amount);
+            await depositWeth(user, amount);
+
+            await _moveTime();
+
+            // now check compounded interest
+            const liquidity = await lendingPool.getLiquidity();
+            showNumbers(amount.mul(2), liquidity);
+        });
+
+        it("two lenders different deposits", async function () {
+            const amount = hre.ethers.utils.parseEther("1000");
+            const amount2 = hre.ethers.utils.parseEther("5000");
+
+            await depositWeth(deployer, amount);
+            await depositWeth(user, amount2);
+
+            await _moveTime();
+
+            // now check compounded interest
+            const liquidity = await lendingPool.getLiquidity();
+            showNumbers(amount.add(amount2), liquidity);
+        });
+
+        it("two lenders different deposits at different times", async function () {
+            const amount = hre.ethers.utils.parseEther("1000");
+            const amount2 = hre.ethers.utils.parseEther("5000");
+
+            await depositWeth(deployer, amount);
+            await _moveTime(days / 2);
+
+            // now check compounded interest
+            console.log("--After first deposit and " + days / 2 + " days--");
+            let liquidity = await lendingPool.getLiquidity();
+            showNumbers(amount, liquidity);
+
+            await depositWeth(user, amount2);
+            await _moveTime(days / 2);
+
+            // now check compounded interest
+            console.log("--After second deposit and " + days / 2 + " days--");
+            liquidity = await lendingPool.getLiquidity();
+            showNumbers(amount.add(amount2), liquidity);
+        });
+    });
+
+    async function showParameters(lendingPool) {
+        const afterBorrowToken = await lendingPool.getBorrowToken();
+        console.log(
+            "[Parameters]:\n\tInterestRate = " +
+                displayPercent(displayRay(afterBorrowToken.variableBorrowRate)) +
+                "\n\tCurrentLiquidityRate = " +
+                displayRay(afterBorrowToken.liquidityRate) +
+                "\n\tLiquidityIndex = " +
+                displayRay(afterBorrowToken.liquidityIndex)
+        );
+    }
+
+    function showNumbers(deposit, liquidity) {
+        console.log("Deposit = " + displayUnits(deposit));
+        console.log("Now w/ Interest = " + displayUnits(liquidity.totalCollateral));
+        console.log("Profit = " + displayUnits(liquidity.totalCollateral.sub(deposit)));
+    }
+
+    const displayRay = (number) => {
+        if (number == undefined) return 0;
+
+        const RAY = 10 ** 27; // 10 to the power 27
+        return number / RAY;
+    };
+
+    const displayPercent = (number) => {
+        if (number == undefined) return 0;
+
+        number *= 100;
+        return Math.round((number + Number.EPSILON) * 100) / 100;
+    };
+
+    const displayUnits = (number, decimals = 18) => {
+        if (number == undefined) return 0;
+        const eth = formatUnits(number, decimals);
+        const val = Math.round(eth * 1e4) / 1e4;
+        return val;
+    };
 });
