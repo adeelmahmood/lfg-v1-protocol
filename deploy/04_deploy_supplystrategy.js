@@ -10,7 +10,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     const args = [networkConfig[chainId].contracts.AAVE_LP_PROVIDER];
 
-    const strategy = await deploy("EthPriceSupplyStrategy", {
+    const strategy = await deploy("UsdPriceSupplyStrategy", {
         from: deployer,
         args: args,
         log: true,
@@ -22,7 +22,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         await verify(strategy.address, args);
     }
 
-    log("EthPriceSupplyStrategy contract deployed successfully");
+    log("UsdPriceSupplyStrategy contract deployed successfully");
 };
 
-module.exports.tags = ["all", "ethpricesupplystrategy"];
+module.exports.tags = ["all", "lendingpool", "pricesupplystrategy"];

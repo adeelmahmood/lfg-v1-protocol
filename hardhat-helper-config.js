@@ -32,7 +32,7 @@ const networkConfig = {
             WETH: "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889", //actually its WMATIC
             DAI: "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-            AAVE_LP_PROVIDER: "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+            AAVE_LP_PROVIDER: "0xeb7A892BB04A8f836bDEeBbf60897A7Af1Bf5d7F",
         },
         governance: {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
@@ -51,7 +51,7 @@ const networkConfig = {
             LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
             USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-            AAVE_LP_PROVIDER: "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+            AAVE_LP_PROVIDER: "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
         },
         governance: {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay

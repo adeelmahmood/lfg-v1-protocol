@@ -65,7 +65,7 @@ module.exports = {
             url: MUMBAI_URL,
             accounts: [PRIVATE_KEY],
             chainId: 80001,
-            gasPrice: 20000000000,
+            gasPrice: 60000000000,
             gas: 6000000,
         },
         goerli: {

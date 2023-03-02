@@ -10,9 +10,9 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./external/aave/LendingPoolAddressesProvider.sol";
-import "./external/aave/LendingPool.sol";
-import "./external/aave/ProtocolDataProvider.sol";
+import "./external/aave/IPoolAddressesProvider.sol";
+import "./external/aave/IPool.sol";
+import "./external/aave/IPoolDataProvider.sol";
 
 import "./governance/GovTokenHandler.sol";
 
@@ -23,30 +23,33 @@ contract LendPoolCore is Ownable {
 
     address public aave;
 
-    event FakeEventForDeployment();
+    event FakeEventForDeployment(uint256 one);
 
     constructor(address _aave) {
         aave = _aave;
     }
 
-    function validateBorrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
+    function validateBorrow(
+        ERC20 _token,
+        uint256 _amount,
+        address /*_to*/
+    ) external view onlyOwner {
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
         IPriceOracleGetter priceOracle = IPriceOracleGetter(provider.getPriceOracle());
 
-        uint256 amountInETH = IPriceOracleGetter(priceOracle)
+        uint256 amountInUsd = IPriceOracleGetter(priceOracle)
             .getAssetPrice(address(_token))
             .mul(_amount)
+            .div(10 ** 8)
             .div(10 ** _token.decimals());
 
-        (uint256 totalCollateral, , uint256 availableToBorrow, , ) = this.getCurrentLiquidity();
-
-        require(amountInETH < totalCollateral, "borrow amount more than total collateral");
-        require(amountInETH < availableToBorrow, "borrow amount more than available to borrow");
+        (, , uint256 availableToBorrow, , ) = this.getCurrentLiquidity();
+        require(amountInUsd < availableToBorrow, "borrow amount more than available to borrow");
     }
 
     function borrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         uint256 variableRate = 2;
         uint16 referral = 0;
@@ -59,14 +62,14 @@ contract LendPoolCore is Ownable {
     }
 
     function deposit(ERC20 _token, uint256 _amount) external onlyOwner {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         uint16 referral = 0;
 
         // approve and send to aave
         _token.approve(address(pool), _amount);
-        pool.deposit(address(_token), _amount, address(this), referral);
+        pool.supply(address(_token), _amount, address(this), referral);
     }
 
     function withdraw(
@@ -74,8 +77,8 @@ contract LendPoolCore is Ownable {
         uint256 _amount,
         address _to
     ) external onlyOwner returns (uint256) {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         // complete withdrawl
         if (_amount == 0) {
@@ -103,17 +106,22 @@ contract LendPoolCore is Ownable {
             uint256 healthFactor
         )
     {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         // get assets info from market pool
         (totalCollateral, totalDebt, availableToBorrow, , loanToValue, healthFactor) = pool
             .getUserAccountData(address(this));
+
+        // convert from base currency to wei
+        totalCollateral = totalCollateral.div(10 ** 8);
+        totalDebt = totalDebt.div(10 ** 8);
+        availableToBorrow = availableToBorrow.div(10 ** 8);
     }
 
     function getActiveTokensFromMarket() external view returns (address[] memory tokens) {
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         return pool.getReservesList();
     }
@@ -122,8 +130,8 @@ contract LendPoolCore is Ownable {
         address _token
     ) external view returns (DataTypes.TokenMarketData memory) {
         // get aave lending pool and data provider
-        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
-        LendingPool pool = LendingPool(provider.getLendingPool());
+        IPoolAddressesProvider provider = IPoolAddressesProvider(aave);
+        IPool pool = IPool(provider.getPool());
 
         DataTypes.TokenMarketData memory tmd;
         tmd.token = _token;

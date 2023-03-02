@@ -25,4 +25,4 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     log("LendToken contract deployed successfully");
 };
 
-module.exports.tags = ["all", "govtoken"];
+module.exports.tags = ["all", "lendingpool", "govtoken"];

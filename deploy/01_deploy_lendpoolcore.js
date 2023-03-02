@@ -25,4 +25,4 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     log("LendPoolCore contract deployed successfully");
 };
 
-module.exports.tags = ["all", "lendingpoolcore"];
+module.exports.tags = ["all", "lendingpool", "lendingpoolcore"];

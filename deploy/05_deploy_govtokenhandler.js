@@ -9,7 +9,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const BLOCK_CONFIRMATIONS = developmentChains.includes(network.name) ? 1 : 6;
 
     const token = await ethers.getContract("GovToken");
-    const supplyStrategy = await ethers.getContract("EthPriceSupplyStrategy");
+    const supplyStrategy = await ethers.getContract("UsdPriceSupplyStrategy");
 
     const args = [token.address, supplyStrategy.address];
 
@@ -36,4 +36,4 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     }
 };
 
-module.exports.tags = ["all", "govtokenhandler"];
+module.exports.tags = ["all", "lendingpool", "govtokenhandler"];
