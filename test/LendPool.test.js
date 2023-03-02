@@ -42,7 +42,7 @@ describe("LendingPool Unit Tests", function () {
 
     const delegate = async (delegateTo) => {
         // delegate gov tokens
-        const delegateTx = await govToken.delegate(delegateTo.address);
+        const delegateTx = await govToken.connect(delegateTo).delegate(delegateTo.address);
         await delegateTx.wait(1);
     };
 
@@ -295,13 +295,13 @@ describe("LendingPool Unit Tests", function () {
     });
 
     describe("governance tests", function () {
-        const amount = hre.ethers.utils.parseEther("1000");
+        const amount = hre.ethers.utils.parseEther("100");
         const borrowAmount = amount.div(10);
 
-        this.beforeEach(async function () {
-            await depositWeth(deployer, amount);
-            await delegate(deployer);
-        });
+        // this.beforeEach(async function () {
+        //     // await depositWeth(deployer, amount);
+        //     // await delegate(deployer);
+        // });
 
         it("can only run borrow through governance", async function () {
             await expect(lendingPool.borrow(WETH.address, 0, deployer.address)).to.be.revertedWith(
@@ -309,8 +309,104 @@ describe("LendingPool Unit Tests", function () {
             );
         });
 
+        it("governance using DAI", async function () {
+            // get some weth
+            const deposit = await WETH.deposit({ value: amount });
+            await deposit.wait();
+            // approve weth for tranfer
+            await WETH.approve(swapRouter.address, amount);
+
+            // swap weth to dai
+            const tx = await swapRouter.swap(WETH.address, DAI.address, amount, {
+                gasLimit: 300000,
+            });
+            tx.wait();
+            const afterDaiBalance = await DAI.balanceOf(deployer.address);
+
+            // deposit dai into contract
+            await DAI.approve(lendingPool.address, afterDaiBalance);
+            await lendingPool.deposit(DAI.address, afterDaiBalance);
+
+            await delegate(deployer);
+
+            const governance = networkConfig[chainId].governance;
+
+            const functionName = "borrow";
+            const PROPOSAL_DESCRIPTION = `Borrow Propopsal`;
+
+            let balance = await govToken.balanceOf(deployer.address);
+            console.log(`[start] gov tokens supply = ${balance / 10 ** 18}`);
+
+            const args = [DAI.address, amount.mul(2), user.address];
+
+            const encodedFunctionCall = lendingPool.interface.encodeFunctionData(
+                functionName,
+                args
+            );
+
+            // propose
+            const proposeTx = await governor.propose(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                PROPOSAL_DESCRIPTION
+            );
+            const proposeReciept = await proposeTx.wait(1);
+            const proposalId = proposeReciept.events[0].args.proposalId;
+            await moveBlocks(governance.VOTING_DELAY);
+
+            // vote
+            const voteTx = await governor.castVoteWithReason(proposalId, 1, "like");
+            await voteTx.wait(1);
+
+            console.log(
+                `ForVotes before moving blocks: ${
+                    (await governor.proposalVotes(proposalId)).forVotes / 10 ** 18
+                }`
+            );
+
+            await moveBlocks(governance.VOTING_PERIOD);
+            console.log(
+                `ForVotes after moving blocks: ${
+                    (await governor.proposalVotes(proposalId)).forVotes / 10 ** 18
+                }`
+            );
+
+            // queue
+            const descriptionHash = ethers.utils.id(PROPOSAL_DESCRIPTION);
+            const queueTx = await governor.queue(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                descriptionHash
+            );
+            await queueTx.wait(1);
+            await moveBlocks(1);
+            await moveTime(governance.EXECUTE_DELAY + 1);
+
+            const exTx = await governor.execute(
+                [lendingPool.address],
+                [0],
+                [encodedFunctionCall],
+                descriptionHash
+            );
+            await exTx.wait(1);
+
+            const userBalance = await DAI.balanceOf(user.address);
+            expect(userBalance).to.be.eq(amount.mul(2));
+
+            const recordedBorrowBalance = await lendingPool.borrowBalance(
+                user.address,
+                DAI.address
+            );
+            expect(recordedBorrowBalance).to.be.eq(amount.mul(2));
+        });
+
         it("proposes, votes, queues, and then executes the borrow function", async function () {
             const governance = networkConfig[chainId].governance;
+
+            await depositWeth(deployer, amount);
+            await delegate(deployer);
 
             const functionName = "borrow";
             const PROPOSAL_DESCRIPTION = `Borrow Propopsal`;
@@ -341,11 +437,7 @@ describe("LendingPool Unit Tests", function () {
             await moveBlocks(governance.VOTING_DELAY + 1);
 
             // vote
-            const voteTx = await governor.castVoteWithReason(
-                proposalId,
-                1,
-                "I like this proposal!"
-            );
+            const voteTx = await governor.castVoteWithReason(proposalId, 1, "like");
             await voteTx.wait(1);
 
             console.log(
@@ -357,7 +449,7 @@ describe("LendingPool Unit Tests", function () {
             proposalState = await governor.state(proposalId);
             console.log(`[vote casted] Proposal id: ${proposalId} in state ${proposalState}`);
             expect(proposalState).to.eq(1);
-            await moveBlocks(governance.VOTING_PERIOD + 10);
+            await moveBlocks(governance.VOTING_PERIOD);
 
             const hasVoted = await governor.hasVoted(proposalId, deployer.address);
             expect(hasVoted).to.eq(true);
@@ -396,6 +488,7 @@ describe("LendingPool Unit Tests", function () {
             proposalState = await governor.state(proposalId);
             expect(proposalState).to.eq(5);
             console.log(`[queued] Proposal id: ${proposalId} in state ${proposalState}`);
+            await moveTime(governance.EXECUTE_DELAY + 1);
 
             console.log("Executing...");
             const exTx = await governor.execute(
@@ -418,7 +511,7 @@ describe("LendingPool Unit Tests", function () {
     });
 
     describe("lending scenarios", function () {
-        const days = 100;
+        const days = 1;
         const _moveTime = async (_days = days) => {
             await moveTime(_days * 24 * 60 * 60, true);
             await moveBlocks((_days * 24 * 60 * 60) / 12, 0, true);

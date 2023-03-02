@@ -29,6 +29,21 @@ contract LendPoolCore is Ownable {
         aave = _aave;
     }
 
+    function validateBorrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {
+        LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
+        IPriceOracleGetter priceOracle = IPriceOracleGetter(provider.getPriceOracle());
+
+        uint256 amountInETH = IPriceOracleGetter(priceOracle)
+            .getAssetPrice(address(_token))
+            .mul(_amount)
+            .div(10 ** _token.decimals());
+
+        (uint256 totalCollateral, , uint256 availableToBorrow, , ) = this.getCurrentLiquidity();
+
+        require(amountInETH < totalCollateral, "borrow amount more than total collateral");
+        require(amountInETH < availableToBorrow, "borrow amount more than available to borrow");
+    }
+
     function borrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {
         LendingPoolAddressesProvider provider = LendingPoolAddressesProvider(aave);
         LendingPool pool = LendingPool(provider.getLendingPool());

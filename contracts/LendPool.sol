@@ -56,9 +56,9 @@ contract LendPool is Ownable, ReentrancyGuard {
         address _user = msg.sender;
         address _tokenAddress = address(_token);
 
-        validateBorrow(_to, _token, _amount);
+        core.validateBorrow(_token, _amount, _to);
 
-        updateStateForBorrow(_to, _token, _amount);
+        updateStateForBorrow(_token, _amount, _to);
 
         core.borrow(_token, _amount, _to);
 
@@ -66,29 +66,7 @@ contract LendPool is Ownable, ReentrancyGuard {
         emit BorrowMade(_user, _tokenAddress, _amount);
     }
 
-    function validateBorrow(
-        address _user,
-        ERC20 _token,
-        uint256 _amount
-    ) internal view returns (uint256) {
-        (
-            uint256 totalCollateral,
-            ,
-            uint256 availableToBorrow,
-            uint256 loanToValue,
-            uint256 healthFactor
-        ) = core.getCurrentLiquidity();
-
-        if (totalCollateral < _amount) {
-            revert LendingPool__BorrowRequestForMoreThanCollateral();
-        }
-
-        if (availableToBorrow < _amount) {
-            revert LendingPool__BorrowRequestForMoreThanAvailable();
-        }
-    }
-
-    function updateStateForBorrow(address _user, ERC20 _token, uint256 _amount) internal {
+    function updateStateForBorrow(ERC20 _token, uint256 _amount, address _user) internal {
         address _tokenAddress = address(_token);
 
         // update borrow balances

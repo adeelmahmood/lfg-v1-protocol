@@ -38,7 +38,7 @@ const networkConfig = {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
             VOTING_PERIOD: 150, // blocks for how long voting stays open ~2s per block
-            VOTING_DELAY: 0, // blocks before proposal becomes active
+            VOTING_DELAY: 150, // blocks before proposal becomes active
         },
     },
     31337: {
@@ -54,10 +54,10 @@ const networkConfig = {
             AAVE_LP_PROVIDER: "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
         },
         governance: {
-            EXECUTE_DELAY: 0, // 3600 = 1 hour - after vote passes, there is one hour delay
+            EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
             VOTING_PERIOD: 10, // blocks for how long voting stays open ~12s per block
-            VOTING_DELAY: 0, // blocks before proposal becomes active
+            VOTING_DELAY: 10, // blocks before proposal becomes active
         },
     },
 };
