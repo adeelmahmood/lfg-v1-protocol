@@ -288,6 +288,10 @@ contract LendPool is Ownable, ReentrancyGuard {
         return borrowBalances[_user][_token];
     }
 
+    function borrowTokenAddress() public view returns (address) {
+        return borrowToken;
+    }
+
     function getChainId() internal view returns (uint) {
         uint256 chainId;
         assembly {

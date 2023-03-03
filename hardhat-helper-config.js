@@ -38,7 +38,7 @@ const networkConfig = {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
             VOTING_PERIOD: 150, // blocks for how long voting stays open ~2s per block
-            VOTING_DELAY: 150, // blocks before proposal becomes active
+            VOTING_DELAY: 50, // blocks before proposal becomes active
         },
     },
     31337: {
@@ -50,8 +50,11 @@ const networkConfig = {
             DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
             LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
             USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+            USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
             AAVE_LP_PROVIDER: "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
+            borrowToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            borrowTokenDecimals: 6,
         },
         governance: {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
