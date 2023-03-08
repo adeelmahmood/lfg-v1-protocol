@@ -41,11 +41,14 @@ contract LendPoolCore is Ownable {
             .getAssetPrice(address(_token))
             .mul(_amount)
             .div(10 ** 8)
-            .div(10 ** 18); //TODO for non 18 decimals the comparison with availableToBorrow doesnt work because its already div by 18
+            .div(10 ** 18); //TODO confirm this makes for non 18 decimals
 
         (, , uint256 availableToBorrow, , ) = this.getCurrentLiquidity();
 
-        require(amountInUsd < availableToBorrow, "borrow amount more than available to borrow");
+        require(
+            amountInUsd < availableToBorrow,
+            "requreted borrow amount more than available to borrow"
+        );
     }
 
     function borrow(ERC20 _token, uint256 _amount, address _to) external onlyOwner {

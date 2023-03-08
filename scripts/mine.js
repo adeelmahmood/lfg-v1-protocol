@@ -1,6 +1,6 @@
 const { moveBlocks } = require("../utils/move-blocks");
 
-const BLOCKS = 11;
+const BLOCKS = 10;
 const SLEEP_AMOUNT = 0;
 
 async function mine() {

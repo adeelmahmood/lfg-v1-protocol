@@ -35,7 +35,8 @@ contract LendPool is Ownable, ReentrancyGuard {
     event DepositMade(address indexed user, address indexed token, uint256 amount);
     event WithdrawlMade(address indexed user, address indexed token, uint256 amount);
     event BorrowMade(address indexed user, address indexed token, uint256 amount);
-    event FakeEventForDeployment();
+
+    event FakeEventForDeployment(uint256 one);
 
     /* Errors */
     error LendingPool__InsufficientAmountForDeposit(address user, address token, uint256 balance);
@@ -49,8 +50,6 @@ contract LendPool is Ownable, ReentrancyGuard {
         govTokenHandler = GovTokenHandler(_govTokenHandler);
         borrowToken = _borrowToken;
     }
-
-    receive() external payable {}
 
     function borrow(ERC20 _token, uint256 _amount, address _to) external nonReentrant onlyOwner {
         address _user = msg.sender;
