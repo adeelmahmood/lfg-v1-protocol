@@ -32,8 +32,10 @@ contract GovTokenHandler {
 
     function burn(address _user, ERC20 _token, uint256 _amount) external {
         uint256 votes = supplyStrategy.votes(_token, _amount);
+        uint256 allowance = govToken.allowance(_user, address(this));
 
         require(govToken.balanceOf(_user) >= votes, "Not enough gov tokens to burn");
+        require(allowance >= votes, "not enough allowance set for burning tokens");
 
         // mint governance tokens based on withdrawl amount
         // and the current suppler handler strategy

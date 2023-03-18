@@ -10,9 +10,14 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     const core = await ethers.getContract("LendPoolCore");
     const handler = await ethers.getContract("GovTokenHandler");
-    const borrowToken = networkConfig[chainId].contracts.borrowToken;
+    const borrowTokens = networkConfig[chainId].contracts.borrowTokens;
+    const borrowTokenAddresses = [];
 
-    const args = [core.address, handler.address, borrowToken];
+    for (let i = 0; i < borrowTokens.length; i++) {
+        borrowTokenAddresses.push(borrowTokens[i].address);
+    }
+
+    const args = [core.address, handler.address, borrowTokenAddresses];
 
     const lendingPool = await deploy("LendPool", {
         from: deployer,

@@ -31,11 +31,12 @@ module.exports = async function () {
         // WETH address
         const wethAddress = networkConfig[chainId].contracts.WETH;
         await addAddressEntry("WETH", wethAddress);
-        // borrow token address
-        const borrowTokenAddress = networkConfig[chainId].contracts.borrowToken;
-        const borrowTokenDecimals = networkConfig[chainId].contracts.borrowTokenDecimals;
-        await addAddressEntry("borrowToken", borrowTokenAddress);
-        await addAddressEntry("borrowTokenDecimals", borrowTokenDecimals);
+        // borrow tokens info
+        const borrowTokens = networkConfig[chainId].contracts.borrowTokens;
+        await addAddressEntry("borrowTokens", borrowTokens);
+        // payout token
+        const payoutToken = networkConfig[chainId].contracts.payoutToken;
+        await addAddressEntry("payoutToken", payoutToken);
     }
 };
 

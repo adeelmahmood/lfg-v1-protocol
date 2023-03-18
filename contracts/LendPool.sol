@@ -19,9 +19,9 @@ contract LendPool is Ownable, ReentrancyGuard {
     using SafeERC20 for ERC20;
     using TokenLib for ERC20;
 
-    LendPoolCore core;
-    GovTokenHandler govTokenHandler;
-    address borrowToken;
+    LendPoolCore immutable core;
+    GovTokenHandler immutable govTokenHandler;
+    address[] borrowTokens;
 
     // token address => amount
     mapping(address => uint256) private tokenBalances;
@@ -45,10 +45,10 @@ contract LendPool is Ownable, ReentrancyGuard {
     error LendingPool__BorrowRequestForMoreThanCollateral();
     error LendingPool__BorrowRequestForMoreThanAvailable();
 
-    constructor(address _core, address _govTokenHandler, address _borrowToken) {
+    constructor(address _core, address _govTokenHandler, address[] memory _borrowTokens) {
         core = LendPoolCore(_core);
         govTokenHandler = GovTokenHandler(_govTokenHandler);
-        borrowToken = _borrowToken;
+        borrowTokens = _borrowTokens;
     }
 
     function borrow(ERC20 _token, uint256 _amount, address _to) external nonReentrant onlyOwner {
@@ -199,17 +199,19 @@ contract LendPool is Ownable, ReentrancyGuard {
         return stats;
     }
 
-    function getBorrowToken()
-        external
-        view
-        returns (DataTypes.TokenMarketData memory borrowTokenMD)
-    {
-        borrowTokenMD = core.getTokenMarketData(borrowToken);
+    function getBorrowTokens() external view returns (DataTypes.TokenMarketData[] memory) {
+        DataTypes.TokenMarketData[] memory tokensMD = new DataTypes.TokenMarketData[](
+            borrowTokens.length
+        );
+        for (uint16 i; i < borrowTokens.length; i++) {
+            tokensMD[i] = core.getTokenMarketData(borrowTokens[i]);
+        }
+        return tokensMD;
     }
 
     function getAvailableTokens(
         address _user
-    ) external view returns (DataTypes.TokenMarketData[] memory tokensMarketData) {
+    ) external view returns (DataTypes.TokenMarketData[] memory) {
         // get all active tokens in the underlying market
         address[] memory activeTokens = core.getActiveTokensFromMarket();
 
@@ -285,10 +287,6 @@ contract LendPool is Ownable, ReentrancyGuard {
 
     function borrowBalance(address _user, address _token) public view returns (uint256) {
         return borrowBalances[_user][_token];
-    }
-
-    function borrowTokenAddress() public view returns (address) {
-        return borrowToken;
     }
 
     function getChainId() internal view returns (uint) {

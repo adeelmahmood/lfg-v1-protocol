@@ -29,12 +29,30 @@ const networkConfig = {
     80001: {
         name: "mumbai",
         contracts: {
-            WETH: "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889", //actually its WMATIC
-            DAI: "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+            WETH: "0xf237dE5664D3c2D2545684E76fef02A3A58A364c", //actually its WMATIC
+            DAI: "0xF14f9596430931E177469715c591513308244e8F",
+            USDC: "0xe9DcE89B076BA6107Bb64EF30678efec11939234",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
             AAVE_LP_PROVIDER: "0xeb7A892BB04A8f836bDEeBbf60897A7Af1Bf5d7F",
-            borrowToken: "0xe9DcE89B076BA6107Bb64EF30678efec11939234",
-            borrowTokenDecimals: 6,
+            borrowTokens: [
+                {
+                    address: "0xe9DcE89B076BA6107Bb64EF30678efec11939234",
+                    decimals: 6,
+                    symbol: "USDC",
+                    fiatPayout: true,
+                },
+                {
+                    address: "0xF14f9596430931E177469715c591513308244e8F",
+                    decimals: 18,
+                    symbol: "DAI",
+                    fiatPayout: false,
+                },
+            ],
+            payoutToken: {
+                address: "0xe9DcE89B076BA6107Bb64EF30678efec11939234",
+                decimals: 6,
+                symbol: "USDC",
+            },
         },
         governance: {
             EXECUTE_DELAY: 120, // 3600 = 1 hour - after vote passes, there is one hour delay
@@ -51,18 +69,34 @@ const networkConfig = {
             WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
             DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
             LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
-            USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
             USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             UNISWAP_ROUTER: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
             AAVE_LP_PROVIDER: "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
-            borrowToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            borrowTokenDecimals: 6,
+            borrowTokens: [
+                {
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    decimals: 6,
+                    symbol: "USDC",
+                    fiatPayout: true,
+                },
+                {
+                    address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    decimals: 18,
+                    symbol: "DAI",
+                    fiatPayout: false,
+                },
+            ],
+            payoutToken: {
+                address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                decimals: 6,
+                symbol: "USDC",
+            },
         },
         governance: {
             EXECUTE_DELAY: 180, // 3600 = 1 hour - after vote passes, there is one hour delay
             QUORUM_PERC: 4, // need 4% of voters to pass the vote
             VOTING_PERIOD: 10, // blocks for how long voting stays open ~12s per block
-            VOTING_DELAY: 10, // blocks before proposal becomes active
+            VOTING_DELAY: 5, // blocks before proposal becomes active
         },
     },
 };
